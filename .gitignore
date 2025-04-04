@@ -1,0 +1,36 @@
+# rust
+/target
+
+# cargo
+
+# build artifacts
+
+# vscode
+.vscode/
+
+# OS/Editor
+.DS_Store
+*.bak
+*.tmp
+
+# frontend
+**/pkg/         # wasm-pack
+
+# environment
+.env
+.env.*
+!.env.example
+.envrc
+
+# docker
+/docker/*.log
+.docker/
+docker-compose-override.yml
+
+# database
+/database/*.db
+/database/tmp
+surreal.log
+
+# cli
+.just

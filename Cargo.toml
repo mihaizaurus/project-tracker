@@ -1,0 +1,12 @@
+[workspace]
+
+members = [
+    "crates/domain",
+    "crates/frontend",
+    "crates/backend",
+    "crates/db",
+    "crates/db-mock",
+    "crates/cli",
+]
+
+resolver = "3"
