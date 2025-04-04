@@ -1,0 +1,8 @@
+[package]
+name = "project-tracker-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+project-tracker-core = { path = "../domain" }
+clap = { version = "4.5.35" }
