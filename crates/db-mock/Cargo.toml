@@ -1,0 +1,8 @@
+[package]
+name = "project-tracker-db-mock"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+project-tracker-core = { path = "../domain" }
+serde = { version = "1.0.219", features = ["derive"] }
