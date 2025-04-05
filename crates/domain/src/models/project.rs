@@ -1,21 +1,15 @@
 use crate::id::Id;
 use crate::{EntityType,HasId};
-use super::task::Task;
-use super::person::Person;
-use super::tag::Tag;
+use crate::models::project_builder::ProjectBuilder;
+use crate::models::task::Task;
+use crate::models::person::Person;
+use crate::models::tag::Tag;
 
-use log::{info,warn,debug};
+use log::{error, info};
 use core::fmt;
 use chrono::{DateTime, Datelike, Utc};
 // use serde::{Serialize, Deserialize};
 
-/// Represents a Project in the Project Tracker App, consisting of some metadata, sub elements as well as displaying some dates and dependencies.
-/// # Examples
-/// ```
-/// use project_tracker_core::models::project::Project;
-/// 
-/// let project_1 = Project::new("Building a cool new Project Tracking App in Rust");
-/// ```
 #[derive(Clone, PartialEq, Eq)]
 pub struct Project {
     id: Id<Project>,
@@ -31,6 +25,7 @@ pub struct Project {
 }
 
 impl Project {
+    /// **Deprecated**, use ProjectBuilder instead!
     pub fn new(name: &str) -> Self {
         Project {
             id: Id::<Project>::new(),
@@ -43,6 +38,21 @@ impl Project {
             children: Vec::new(),
             dependencies: Vec::new(),
             status: ProjectStatus::NotStarted
+        }
+    }
+
+    pub fn from_builder(builder: ProjectBuilder) -> Self {
+        Project {
+            id: builder.id(),
+            name: builder.name(),
+            owner_id: builder.owner_id(),
+            description: builder.description(),
+            tags: builder.tags(),
+            start_date: builder.start_date(),
+            due_date: builder.due_date(),
+            children: builder.children(),
+            dependencies: builder.dependencies(),
+            status: builder.status()
         }
     }
 
@@ -119,13 +129,17 @@ impl Project {
         self
     }
 
-    pub fn add_tag(mut self, tag: Id<Tag>) -> Self {
-        self.tags.push(tag);
+    pub fn add_tag(&mut self, tag_id: Id<Tag>) -> &Self {
+        if self.is_valid_tag(&tag_id) {
+            self.tags.push(tag_id);
+        }
         self
     }
 
-    pub fn add_tags(mut self, mut tags: Vec<Id<Tag>>) -> Self {
-        self.tags.append(&mut tags);
+    pub fn add_tags(&mut self, tags: Vec<Id<Tag>>) -> &Self {
+        for tag_id in tags {
+            self.add_tag(tag_id);
+        }
         self
     }
 
@@ -150,13 +164,18 @@ impl Project {
         self
     }
 
-    pub fn start_now(mut self) -> Self {
-        self.start_date = Some(Utc::now());
+    pub fn start_now(&mut self) -> &Self {
+        self.start_at_date(Utc::now());
         self
     }
 
-    pub fn start_at_date(mut self, start_date: DateTime<Utc>) -> Self {
-        self.start_date = Some(start_date);
+    pub fn start_at_date(&mut self, start_date: DateTime<Utc>) -> &Self {
+        if self.is_valid_start_date(Some(start_date)) {
+            self.start_date = Some(start_date);
+        }
+        else {
+            error!("Provided start date ({}) is invalid.",start_date)
+        }
         self
     }
 
@@ -166,7 +185,9 @@ impl Project {
     }
 
     pub fn set_due_date(&mut self, due_date: DateTime<Utc>) -> &Self {
-        self.due_date = Some(due_date);
+        if self.is_valid_due_date(Some(due_date)) {
+            self.due_date = Some(due_date);
+        }
         self
     }
 
@@ -210,12 +231,16 @@ impl Project {
     }
 
     pub fn add_child(&mut self,child: ProjectSubElement) -> &Self {
-        self.children.push(child);
+        if self.is_valid_child(&child) {
+            self.children.push(child);
+        }
         self
     }
 
-    pub fn add_children(&mut self,mut children: Vec<ProjectSubElement>) -> &Self {
-        self.children.append(&mut children);
+    pub fn add_children(&mut self,children: Vec<ProjectSubElement>) -> &Self {
+        for child in children {
+            self.add_child(child);
+        }
         self
     }
 
@@ -228,8 +253,7 @@ impl Project {
     pub fn remove_children(&mut self,children: Vec<ProjectSubElement>) -> &Self {
         if !children.is_empty() {
             for child in children {
-                let index = self.children.iter().position(|t| t == &child).unwrap();
-                self.children.remove(index);
+                self.remove_child(child);
             }
         }
         self
@@ -240,13 +264,45 @@ impl Project {
         self
     }
 
-    pub fn add_dependency(mut self, project_id: Id<Project>) -> Self {
-        self.dependencies.push(project_id);
+    pub fn has_dependencies(&self) -> bool {
+        self.dependencies.len() > 0
+    }
+
+    pub fn dependencies(&self) -> Vec<Id<Project>> {
+        self.dependencies.clone()
+    }
+
+    pub fn add_dependency(&mut self, project_id: Id<Project>) -> &Self {
+        if self.is_valid_dependency(&project_id){
+            self.dependencies.push(project_id);
+        }
         self
     }
 
-    pub fn add_dependencies(mut self, mut project_ids: Vec<Id<Project>>) -> Self {
-        self.dependencies.append(&mut project_ids);
+    pub fn add_dependencies(&mut self, project_ids: Vec<Id<Project>>) -> &Self {
+        for project_id in project_ids {
+            self.add_dependency(project_id);
+        }
+        self
+    }
+
+    pub fn remove_dependency(&mut self, dependency_project_id: Id<Project>) -> &Self {
+        let index = self.dependencies.iter().position(|t| t == &dependency_project_id).unwrap();
+        self.dependencies.remove(index);
+        self
+    }
+
+    pub fn remove_dependencies(&mut self, dependency_project_ids: Vec<Id<Project>>) -> &Self {
+        if !dependency_project_ids.is_empty() {
+            for dependency_project_id in dependency_project_ids {
+                self.remove_dependency(dependency_project_id);
+            }
+        }
+        self
+    }
+
+    pub fn remove_all_dependencies(&mut self) -> &Self {
+        self.dependencies.clear();
         self
     }
 
@@ -283,14 +339,48 @@ impl Project {
     pub fn cancel(&mut self) -> &Self {
         match self.status {
             ProjectStatus::Archived => {
-                warn!("Project is already archived and cannot be canceled");
+                info!("Project is already archived and cannot be canceled");
             },
             ProjectStatus::Completed => {
-                warn!("Project is already completed and cannot be canceled");
+                info!("Project is already completed and cannot be canceled");
             },
             _ => {self.status = ProjectStatus::Canceled;}
         }
         self
+    }
+
+    /* ### Validation Methods */
+    pub fn is_valid_dependency(&self, dependency_project_id: &Id<Project>) -> bool {
+        dependency_project_id != &self.id()
+    }
+
+    pub fn is_valid_child(&self, child_to_validate: &ProjectSubElement) -> bool {
+        match child_to_validate {
+            ProjectSubElement::Project(child_project_id) => {
+                &self.id() != child_project_id
+            },
+            _ => true,
+        }
+    }
+
+    pub fn is_valid_start_date(&self, start_date: Option<DateTime<Utc>>) -> bool {
+        match (start_date, self.due_date()) {
+            (Some(start),Some(due)) => start <= due, // due date not before start date
+            _ => true, // Defaults to true if start_date set to None
+        }
+    }
+
+    pub fn is_valid_due_date(&self, due_date: Option<DateTime<Utc>>) -> bool {
+        match (self.start_date(), due_date) {
+            (Some(start),Some(due)) => start <= due, // due date not before start date
+            (_,Some(due)) => due >= Utc::now(), // due date not in the past
+            _ => true, // Defaults to true if due_date set to None
+        }
+    }
+
+    pub fn is_valid_tag(&self, tag_id: &Id<Tag>) -> bool {
+        !self.tags().contains(tag_id)
+        // further validation may be needed
     }
 
 }

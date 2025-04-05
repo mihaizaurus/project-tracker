@@ -2,7 +2,8 @@
 mod tests {
     use chrono::{Datelike, Timelike, Utc, Duration};
     use project_tracker_core::HasId;
-    use project_tracker_core::models::{person, task, tag, milestone, project};
+    use project_tracker_core::models::{person, task, tag, /*milestone,*/ project, project_builder};
+    use project_tracker_core::factories::project_factory;
     use person::Person;
     use task::Task;
     use tag::Tag;
@@ -79,7 +80,8 @@ mod tests {
     fn add_tag() {
         let test_tag = Tag::new("TestTag");
         let project_name = "This is a sample project title";
-        let project = Project::new(project_name).add_tag(test_tag.id());
+        let mut project = Project::new(project_name);
+        project.add_tag(test_tag.id());
         assert!(project.has_tags());
         assert!(project.tags().contains(&test_tag.id().clone()));
     }
@@ -91,7 +93,8 @@ mod tests {
         let test_tag_3 = Tag::new("TestTag3");
         let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
         let project_name = "This is a sample project title";
-        let project = Project::new(project_name).add_tags(test_tags.clone());
+        let mut project = Project::new(project_name);
+        project.add_tags(test_tags.clone());
         assert!(project.has_tags());
         for tag in test_tags {
             assert!(project.tags().contains(&tag.clone())); 
@@ -105,7 +108,8 @@ mod tests {
         let test_tag_3 = Tag::new("TestTag3");
         let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
         let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).add_tags(test_tags.clone());
+        let mut project = Project::new(project_name);
+        project.add_tags(test_tags.clone());
         assert!(project.has_tags());
         project.remove_all_tags();
         assert!(!project.has_tags());
@@ -115,7 +119,8 @@ mod tests {
     fn remove_tag() {
         let test_tag = Tag::new("TestTag");
         let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).add_tag(test_tag.id());
+        let mut project = Project::new(project_name);
+        project.add_tag(test_tag.id());
         assert!(project.has_tags());
         project.remove_tag(test_tag.id());
         assert!(!project.has_tags());
@@ -129,7 +134,8 @@ mod tests {
         let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
         let test_tags_to_remove = vec![test_tag_1.id(), test_tag_2.id()];
         let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).add_tags(test_tags.clone());
+        let mut project = Project::new(project_name);
+        project.add_tags(test_tags.clone());
         assert!(project.has_tags());
         for tag in test_tags {
             assert!(project.tags().contains(&tag.clone())); 
@@ -146,7 +152,8 @@ mod tests {
     fn create_project_with_start_now() {
         let project_name = "This is a sample project title";
         let now = Utc::now();
-        let project = Project::new(project_name).start_now();
+        let mut project = Project::new(project_name);
+        project.start_now();
         assert!(project.has_start_date());
         assert_eq!(now.year(),project.start_date().unwrap().year());
         assert_eq!(now.month(),project.start_date().unwrap().month());
@@ -160,7 +167,8 @@ mod tests {
         let project_name = "This is a sample project title";
         let now = Utc::now();
         let tomorrow = now + Duration::days(1);
-        let project = Project::new(project_name).start_at_date(tomorrow);
+        let mut project = Project::new(project_name);
+        project.start_at_date(tomorrow);
         assert!(project.has_start_date());
         assert_eq!(tomorrow.year(),project.start_date().unwrap().year());
         assert_eq!(tomorrow.month(),project.start_date().unwrap().month());
@@ -174,7 +182,8 @@ mod tests {
         let project_name = "This is a sample project title";
         let now = Utc::now();
         let yesterday = now - Duration::days(1);
-        let project = Project::new(project_name).start_at_date(yesterday);
+        let mut project = Project::new(project_name);
+        project.start_at_date(yesterday);
         assert!(project.has_start_date());
         assert_eq!(yesterday.year(),project.start_date().unwrap().year());
         assert_eq!(yesterday.month(),project.start_date().unwrap().month());
@@ -186,7 +195,8 @@ mod tests {
     #[test]
     fn remove_start_date() {
         let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).start_now();
+        let mut project = Project::new(project_name);
+        project.start_now();
         assert!(project.has_start_date());
         project.remove_start_date();
         assert!(!project.has_start_date());
@@ -206,6 +216,18 @@ mod tests {
         assert_eq!(due_date.day(),project.due_date().unwrap().day());
         assert_eq!(due_date.hour(),project.due_date().unwrap().hour());
         assert_eq!(due_date.minute(),project.due_date().unwrap().minute());
+    }
+
+    #[test]
+    fn set_due_date_yesterday() {
+        let project_name = "This is a sample project title";
+        let mut project = Project::new(project_name);
+        let mut due_date = Utc::now();
+        due_date -= Duration::days(1);
+        assert!(!project.has_due_date());
+        assert!(!project.is_valid_due_date(Some(due_date))); // yesterday is not avalid due date
+        project.set_due_date(due_date);
+        assert!(!project.has_due_date());
     }
 
     #[test]

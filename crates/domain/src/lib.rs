@@ -1,4 +1,5 @@
 pub mod models;
+pub mod factories;
 pub mod id;
 
 use id::Id;
