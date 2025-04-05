@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod tests {
     use chrono::{Datelike, Timelike, Utc, Duration};
+    use project_tracker_core::models::project_builder::ProjectBuilder;
     use project_tracker_core::HasId;
     use project_tracker_core::models::{person, task, tag, /*milestone,*/ project, project_builder};
-    use project_tracker_core::factories::project_factory;
+    use project_tracker_core::factories::project_factory::*;
     use person::Person;
     use task::Task;
     use tag::Tag;
@@ -12,24 +13,22 @@ mod tests {
     #[test]
     fn create_project() {
         let project_name = "This is a sample project title";
-        let project = Project::new(project_name);
+        let project = ProjectBuilder::new().with_name(project_name).build();
         assert_eq!(project.name(), project_name);
     }
 
     #[test]
     fn rename_project() {
-        let project_name_old = "This is a sample project title";
         let project_name_new = "This is a different project title";
-        let mut project = Project::new(&project_name_old);
-        assert_eq!(project.name(),project_name_old);
+        let mut project = sample_project();
+        assert_ne!(project.name(),project_name_new);
         project.rename(project_name_new);
         assert_eq!(project.name(),project_name_new);
     }
 
     #[test]
     fn create_project_id() {
-        let project_name = "This is a sample project title";
-        let project = Project::new(project_name);
+        let project = sample_project();
         let project_id  = project.id().to_string();
         assert!(project_id.starts_with("project-"));
     }
@@ -37,29 +36,24 @@ mod tests {
     #[test]
     fn assign_owner() {
         let owner = Person::new("Test","McTesty");
-        let project_name = "This is a sample project title";
-        let project = Project::new(project_name).set_owner(owner.id());
+        let project = ProjectBuilder::new().with_owner_id(owner.id()).build();
         assert!(project.has_owner());
         assert_eq!(project.owner_id().unwrap().clone(),owner.id());
     }
 
     #[test]
     fn transfer_ownership() {
-        let owner_old = Person::new("Test","McTesty");
         let owner_new = Person::new("Newbie","McNewsy");
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).set_owner(owner_old.id());
-        assert!(project.has_owner());
-        assert_eq!(project.owner_id().unwrap().clone(),owner_old.id());
+        let mut project = sample_project();
         project.transfer_ownership(owner_new.id());
+        assert!(project.has_owner());
         assert_eq!(project.owner_id().unwrap().clone(),owner_new.id());
     }
 
     #[test]
     fn create_project_with_description() {
-        let project_name = "This is a sample project title";
         let description = "This is a sample description";
-        let project = Project::new(project_name).set_description(description);
+        let project = ProjectBuilder::new().with_description(description).build();
         assert!(project.has_description());
         assert_eq!(project.description(),description);
     }
