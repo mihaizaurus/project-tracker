@@ -200,6 +200,10 @@ impl Project {
         self.children.len() > 0
     }
 
+    pub fn has_child(&self, child_to_validate: &ProjectSubElement) -> bool {
+        self.children.contains(child_to_validate)
+    }
+
     pub fn children(&self) -> Vec<ProjectSubElement> {
         self.children.clone()
     }
@@ -262,6 +266,10 @@ impl Project {
     pub fn remove_all_children(&mut self) -> &Self {
         self.children.clear();
         self
+    }
+
+    pub fn has_dependency(&self, dependency_to_validate: &Id<Project>) -> bool {
+        self.dependencies.contains(dependency_to_validate)
     }
 
     pub fn has_dependencies(&self) -> bool {
@@ -332,7 +340,9 @@ impl Project {
     }
 
     pub fn archive(&mut self) -> &Self {
-        self.status = ProjectStatus::Archived;
+        if self.status != ProjectStatus::Archived {
+            self.status = ProjectStatus::Archived;
+        }
         self
     }
 

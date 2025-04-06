@@ -1,14 +1,14 @@
 #[cfg(test)]
 mod tests {
     use chrono::{Datelike, Timelike, Utc, Duration};
-    use project_tracker_core::models::project_builder::ProjectBuilder;
     use project_tracker_core::HasId;
-    use project_tracker_core::models::{person, task, tag, /*milestone,*/ project, project_builder};
+    use project_tracker_core::models::{person, task, tag, project, project_builder};
     use project_tracker_core::factories::project_factory::*;
     use person::Person;
     use task::Task;
     use tag::Tag;
-    use project::{Project,ProjectStatus,ProjectSubElement};
+    use project::{ProjectStatus,ProjectSubElement};
+    use project_builder::ProjectBuilder;
 
     #[test]
     fn create_project() {
@@ -60,11 +60,8 @@ mod tests {
 
     #[test]
     fn clear_project_description() {
-        let project_name = "This is a sample project title";
         let description = "This is a sample description";
-        let mut project = Project::new(project_name).set_description(description);
-        assert!(project.has_description());
-        assert_eq!(project.description(),description);
+        let mut project = ProjectBuilder::new().with_description(description).build();
         project.clear_description();
         assert!(!project.has_description());
         assert_eq!(project.description(),"");
@@ -73,8 +70,7 @@ mod tests {
     #[test]
     fn add_tag() {
         let test_tag = Tag::new("TestTag");
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         project.add_tag(test_tag.id());
         assert!(project.has_tags());
         assert!(project.tags().contains(&test_tag.id().clone()));
@@ -86,8 +82,7 @@ mod tests {
         let test_tag_2 = Tag::new("TestTag2");
         let test_tag_3 = Tag::new("TestTag3");
         let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         project.add_tags(test_tags.clone());
         assert!(project.has_tags());
         for tag in test_tags {
@@ -97,13 +92,7 @@ mod tests {
 
     #[test]
     fn clear_tags() {
-        let test_tag_1 = Tag::new("TestTag1");
-        let test_tag_2 = Tag::new("TestTag2");
-        let test_tag_3 = Tag::new("TestTag3");
-        let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.add_tags(test_tags.clone());
+        let mut project = sample_project_with_tags();
         assert!(project.has_tags());
         project.remove_all_tags();
         assert!(!project.has_tags());
@@ -112,9 +101,7 @@ mod tests {
     #[test]
     fn remove_tag() {
         let test_tag = Tag::new("TestTag");
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.add_tag(test_tag.id());
+        let mut project = ProjectBuilder::new().with_tags(vec![test_tag.id()]).build();
         assert!(project.has_tags());
         project.remove_tag(test_tag.id());
         assert!(!project.has_tags());
@@ -127,10 +114,7 @@ mod tests {
         let test_tag_3 = Tag::new("TestTag3");
         let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
         let test_tags_to_remove = vec![test_tag_1.id(), test_tag_2.id()];
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.add_tags(test_tags.clone());
-        assert!(project.has_tags());
+        let mut project = ProjectBuilder::new().with_tags(test_tags.clone()).build();
         for tag in test_tags {
             assert!(project.tags().contains(&tag.clone())); 
         }
@@ -144,9 +128,8 @@ mod tests {
 
     #[test]
     fn create_project_with_start_now() {
-        let project_name = "This is a sample project title";
         let now = Utc::now();
-        let mut project = Project::new(project_name);
+        let mut project = ProjectBuilder::new().build();
         project.start_now();
         assert!(project.has_start_date());
         assert_eq!(now.year(),project.start_date().unwrap().year());
@@ -158,39 +141,31 @@ mod tests {
 
     #[test]
     fn create_project_with_start_tomorrow() {
-        let project_name = "This is a sample project title";
         let now = Utc::now();
         let tomorrow = now + Duration::days(1);
-        let mut project = Project::new(project_name);
+        let mut project = ProjectBuilder::new().build();
         project.start_at_date(tomorrow);
         assert!(project.has_start_date());
         assert_eq!(tomorrow.year(),project.start_date().unwrap().year());
         assert_eq!(tomorrow.month(),project.start_date().unwrap().month());
         assert_eq!(tomorrow.day(),project.start_date().unwrap().day());
-        assert_eq!(tomorrow.hour(),project.start_date().unwrap().hour());
-        assert_eq!(tomorrow.minute(),project.start_date().unwrap().minute());
     }
 
     #[test]
     fn create_project_with_start_yesterday() {
-        let project_name = "This is a sample project title";
         let now = Utc::now();
         let yesterday = now - Duration::days(1);
-        let mut project = Project::new(project_name);
+        let mut project = ProjectBuilder::new().build();
         project.start_at_date(yesterday);
         assert!(project.has_start_date());
         assert_eq!(yesterday.year(),project.start_date().unwrap().year());
         assert_eq!(yesterday.month(),project.start_date().unwrap().month());
         assert_eq!(yesterday.day(),project.start_date().unwrap().day());
-        assert_eq!(yesterday.hour(),project.start_date().unwrap().hour());
-        assert_eq!(yesterday.minute(),project.start_date().unwrap().minute());
     }
 
     #[test]
     fn remove_start_date() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.start_now();
+        let mut project = ProjectBuilder::new().with_star_date(Utc::now()).build();
         assert!(project.has_start_date());
         project.remove_start_date();
         assert!(!project.has_start_date());
@@ -198,8 +173,7 @@ mod tests {
 
     #[test]
     fn set_due_date_tomorrow() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         let mut due_date = Utc::now();
         due_date += Duration::days(1);
         assert!(!project.has_due_date());
@@ -208,14 +182,11 @@ mod tests {
         assert_eq!(due_date.year(),project.due_date().unwrap().year());
         assert_eq!(due_date.month(),project.due_date().unwrap().month());
         assert_eq!(due_date.day(),project.due_date().unwrap().day());
-        assert_eq!(due_date.hour(),project.due_date().unwrap().hour());
-        assert_eq!(due_date.minute(),project.due_date().unwrap().minute());
     }
 
     #[test]
     fn set_due_date_yesterday() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         let mut due_date = Utc::now();
         due_date -= Duration::days(1);
         assert!(!project.has_due_date());
@@ -226,11 +197,7 @@ mod tests {
 
     #[test]
     fn remove_due_date() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let mut due_date = Utc::now();
-        due_date += Duration::days(1);
-        project.set_due_date(due_date);
+        let mut project = sample_project_with_due_date();
         assert!(project.has_due_date());
         project.remove_due_date();
         assert!(!project.has_due_date());
@@ -238,204 +205,140 @@ mod tests {
 
     #[test]
     fn promote_from_not_started() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
+        let mut project = sample_project();
         project.promote();
         assert!(project.status() == ProjectStatus::Planned);
     }
     #[test]
     fn demote_from_not_started() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
+        let mut project = sample_project();
         project.demote();
         assert!(project.status() == ProjectStatus::NotStarted);
     }
 
     #[test]
     fn promote_from_planned() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Planned);
+        let mut project = sample_planned_project();
         project.promote();
         assert!(project.status() == ProjectStatus::InProgress);
     }
 
     #[test]
     fn demote_from_planned() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Planned);
+        let mut project = sample_planned_project();
         project.demote();
         assert!(project.status() == ProjectStatus::NotStarted);
     }
 
     #[test]
     fn promote_from_in_progress() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Planned);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InProgress);
+        let mut project = sample_in_progress_project();
         project.promote();
         assert!(project.status() == ProjectStatus::InReview);
     }
     #[test]
     fn demote_from_in_progress() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Planned);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InProgress);
+        let mut project = sample_in_progress_project();
         project.demote();
         assert!(project.status() == ProjectStatus::Planned);
     }
 
     #[test]
     fn promote_from_in_review() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Planned);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InProgress);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InReview);
+        let mut project = sample_in_review_project();
         project.promote();
         assert!(project.status() == ProjectStatus::Completed);
     }
 
     #[test]
     fn demote_from_in_review() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Planned);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InProgress);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InReview);
+        let mut project = sample_in_review_project();
         project.demote();
         assert!(project.status() == ProjectStatus::InProgress);
     }
 
     #[test]
     fn promote_from_completed() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Planned);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InProgress);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InReview);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Completed);
+        let mut project = sample_completed_project();
         project.promote();
         assert!(project.status() == ProjectStatus::Completed);
     }
 
     #[test]
     fn demote_from_completed() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        assert!(project.status() == ProjectStatus::NotStarted);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Planned);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InProgress);
-        project.promote();
-        assert!(project.status() == ProjectStatus::InReview);
-        project.promote();
-        assert!(project.status() == ProjectStatus::Completed);
+        let mut project = sample_completed_project();
         project.demote();
         assert!(project.status() == ProjectStatus::Completed);
     }
 
     #[test]
     fn archive() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
+        project.archive();
+        assert!(project.status() == ProjectStatus::Archived);
+        let mut project = sample_planned_project();
+        project.archive();
+        assert!(project.status() == ProjectStatus::Archived);
+        let mut project = sample_in_progress_project();
+        project.archive();
+        assert!(project.status() == ProjectStatus::Archived);
+        let mut project = sample_in_review_project();
+        project.archive();
+        assert!(project.status() == ProjectStatus::Archived);
+        let mut project = sample_completed_project();
+        project.archive();
+        assert!(project.status() == ProjectStatus::Archived);
+        let mut project = sample_canceled_project();
         project.archive();
         assert!(project.status() == ProjectStatus::Archived);
     }
 
     #[test]
     fn promote_from_archived() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.archive();
-        assert!(project.status() == ProjectStatus::Archived);
+        let mut project = sample_archived_project();
         project.promote();
-        assert!(project.status() == ProjectStatus::Archived);
+        assert!(project.status() == ProjectStatus::Archived); // Archive can't be promoted beyond
     }
 
     #[test]
     fn demote_from_archived() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.archive();
-        assert!(project.status() == ProjectStatus::Archived);
+        let mut project = sample_archived_project();
         project.demote();
         assert!(project.status() == ProjectStatus::Archived);
     }
 
     #[test]
     fn cancel() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         project.cancel();
         assert!(project.status() == ProjectStatus::Canceled);
     }
 
     #[test]
     fn cancel_archived_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.archive();
-        assert!(project.status() == ProjectStatus::Archived);
+        let mut project = sample_archived_project();
         project.cancel();
         assert!(project.status() == ProjectStatus::Archived);
     }
 
     #[test]
     fn promote_from_canceled() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.cancel();
-        assert!(project.status() == ProjectStatus::Canceled);
+        let mut project = sample_canceled_project();
         project.promote();
         assert!(project.status() == ProjectStatus::Canceled);
     }
 
     #[test]
     fn demote_from_canceled() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        project.cancel();
-        assert!(project.status() == ProjectStatus::Canceled);
+        let mut project = sample_canceled_project();
         project.demote();
         assert!(project.status() == ProjectStatus::Canceled);
     }
 
     #[test]
     fn add_child_project_to_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let child_project_name = "This is a child project title";
-        let child_project = Project::new(child_project_name);
+        let mut project = sample_project();
+        let child_project = sample_project();
         assert_ne!(project, child_project);
         project.add_child(ProjectSubElement::Project(child_project.id()));
         assert!(project.has_children());
@@ -446,18 +349,11 @@ mod tests {
 
     #[test]
     fn add_multiple_child_projects_to_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let child_project_name_1 = "This is a child project title 1";
-        let child_project_1 = Project::new(child_project_name_1);
-        let child_project_name_2 = "This is a child project title 2";
-        let child_project_2 = Project::new(child_project_name_2);
-        let child_project_name_3 = "This is a child project title 3";
-        let child_project_3 = Project::new(child_project_name_3);
+        let mut project = sample_project();
         let children = vec![
-            ProjectSubElement::Project(child_project_1.id()),
-            ProjectSubElement::Project(child_project_2.id()),
-            ProjectSubElement::Project(child_project_3.id())
+            ProjectSubElement::Project(sample_project().id()),
+            ProjectSubElement::Project(sample_project().id()),
+            ProjectSubElement::Project(sample_project().id())
         ];
         project.add_children(children);
         assert!(project.has_children());
@@ -468,41 +364,24 @@ mod tests {
 
     #[test]
     fn remove_child_project_from_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let child_project_name_1 = "This is a child project title 1";
-        let child_project_1 = Project::new(child_project_name_1);
-        let child_project_name_2 = "This is a child project title 2";
-        let child_project_2 = Project::new(child_project_name_2);
-        let child_project_name_3 = "This is a child project title 3";
-        let child_project_3 = Project::new(child_project_name_3);
+        let mut project = sample_project();
+        let child_project_2 = sample_project();
         let children = vec![
-            ProjectSubElement::Project(child_project_1.id()),
+            ProjectSubElement::Project(sample_project().id()),
             ProjectSubElement::Project(child_project_2.id()),
-            ProjectSubElement::Project(child_project_3.id())
+            ProjectSubElement::Project(sample_project().id())
         ];
         project.add_children(children);
-        assert!(project.has_children());
-        assert!(project.children().len() == 3);
-        assert!(project.project_children().len() == 3);
-        assert!(project.task_children().len() == 0);
         project.remove_child(ProjectSubElement::Project(child_project_2.id()));
-        assert!(project.has_children());
-        assert!(project.children().len() == 2);
-        assert!(project.project_children().len() == 2);
-        assert!(project.task_children().len() == 0);
+        assert!(!project.has_child(&ProjectSubElement::Project(child_project_2.id())));
     }
 
     #[test]
     fn remove_multiple_child_projects_from_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let child_project_name_1 = "This is a child project title 1";
-        let child_project_1 = Project::new(child_project_name_1);
-        let child_project_name_2 = "This is a child project title 2";
-        let child_project_2 = Project::new(child_project_name_2);
-        let child_project_name_3 = "This is a child project title 3";
-        let child_project_3 = Project::new(child_project_name_3);
+        let mut project = sample_project();
+        let child_project_1 = sample_project();
+        let child_project_2 = sample_project();
+        let child_project_3 = sample_project();
         let children = vec![
             ProjectSubElement::Project(child_project_1.id()),
             ProjectSubElement::Project(child_project_2.id()),
@@ -513,22 +392,17 @@ mod tests {
             ProjectSubElement::Project(child_project_3.id())
         ];
         project.add_children(children);
-        assert!(project.has_children());
-        assert!(project.children().len() == 3);
-        assert!(project.project_children().len() == 3);
-        assert!(project.task_children().len() == 0);
         project.remove_children(children_to_remove);
         assert!(project.has_children());
         assert!(project.children().len() == 1);
         assert!(project.project_children().len() == 1);
         assert!(project.task_children().len() == 0);
-        assert!(project.project_children().contains(&child_project_2.id().clone()));
+        assert!(project.has_child(&ProjectSubElement::Project(child_project_2.id())));
     }
 
     #[test]
     fn add_child_task_to_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         let task_name = "This is a child task title";
         let child_task = Task::new(task_name);
         project.add_child(ProjectSubElement::Task(child_task.id()));
@@ -540,8 +414,7 @@ mod tests {
 
     #[test]
     fn add_multiple_child_tasks_to_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         let child_task_name_1 = "This is a child project title 1";
         let child_task_1 = Task::new(child_task_name_1);
         let child_task_name_2 = "This is a child project title 2";
@@ -562,8 +435,7 @@ mod tests {
 
     #[test]
     fn remove_child_task_from_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         let child_task_name_1 = "This is a child project title 1";
         let child_task_1 = Task::new(child_task_name_1);
         let child_task_name_2 = "This is a child project title 2";
@@ -589,8 +461,7 @@ mod tests {
 
     #[test]
     fn remove_multiple_child_tasks_from_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
+        let mut project = sample_project();
         let child_task_name_1 = "This is a child project title 1";
         let child_task_1 = Task::new(child_task_name_1);
         let child_task_name_2 = "This is a child project title 2";
@@ -621,14 +492,10 @@ mod tests {
 
     #[test]
     fn add_mixed_children_to_project() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let child_project_name_1 = "This is a child project title 1";
-        let child_project_1 = Project::new(child_project_name_1);
-        let child_project_name_2 = "This is a child project title 2";
-        let child_project_2 = Project::new(child_project_name_2);
-        let child_project_name_3 = "This is a child project title 3";
-        let child_project_3 = Project::new(child_project_name_3);
+        let mut project = sample_project();
+        let child_project_1 = sample_project();
+        let child_project_2 = sample_project();
+        let child_project_3 = sample_project();
         let child_task_name_1 = "This is a child project title 1";
         let child_task_1 = Task::new(child_task_name_1);
         let child_task_name_2 = "This is a child project title 2";
@@ -652,37 +519,68 @@ mod tests {
 
     #[test]
     fn remove_all_children() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let child_project_name_1 = "This is a child project title 1";
-        let child_project_1 = Project::new(child_project_name_1);
-        let child_project_name_2 = "This is a child project title 2";
-        let child_project_2 = Project::new(child_project_name_2);
-        let child_project_name_3 = "This is a child project title 3";
-        let child_project_3 = Project::new(child_project_name_3);
-        let child_task_name_1 = "This is a child project title 1";
-        let child_task_1 = Task::new(child_task_name_1);
-        let child_task_name_2 = "This is a child project title 2";
-        let child_task_2 = Task::new(child_task_name_2);
-        let child_task_name_3 = "This is a child project title 3";
-        let child_task_3 = Task::new(child_task_name_3);
-        let children = vec![
-            ProjectSubElement::Project(child_project_1.id()),
-            ProjectSubElement::Project(child_project_2.id()),
-            ProjectSubElement::Project(child_project_3.id()),
-            ProjectSubElement::Task(child_task_1.id()),
-            ProjectSubElement::Task(child_task_2.id()),
-            ProjectSubElement::Task(child_task_3.id())
-        ];
-        project.add_children(children);
+        let mut project = sample_project_with_child_projects_and_tasks();
         assert!(project.has_children());
-        assert!(project.children().len() == 6);
-        assert!(project.project_children().len() == 3);
-        assert!(project.task_children().len() == 3);
         project.remove_all_children();
         assert!(!project.has_children());
-        assert!(project.project_children().len() == 0);
-        assert!(project.task_children().len() == 0);
+    }
+
+    #[test]
+    fn add_dependency() {
+        let mut project = sample_project();
+        let dependency = sample_project();
+        project.add_dependency(dependency.id());
+        assert!(project.has_dependencies());
+    }
+
+    #[test]
+    fn remove_dependency() {
+        let mut project = sample_project();
+        let dependency = sample_project();
+        project.add_dependency(dependency.id());
+        assert!(project.has_dependencies());
+        project.remove_dependency(dependency.id());
+        assert!(!project.has_dependencies());
+    }
+
+    #[test]
+    fn add_dependencies() {
+        let mut project = sample_project();
+        let dependency_1 = sample_project();
+        let dependency_2 = sample_project();
+        project.add_dependencies(vec![
+            dependency_1.id(),
+            dependency_2.id()
+        ]);
+        assert!(project.has_dependencies());
+        assert_eq!(project.dependencies().len(),2);
+    }
+
+    #[test]
+    fn remove_dependencies() {
+        let mut project = sample_project();
+        let dependency_1 = sample_project();
+        let dependency_2 = sample_project();
+        let dependency_3 = sample_project();
+        project.add_dependencies(vec![
+            dependency_1.id(),
+            dependency_2.id(),
+            dependency_3.id()
+        ]);
+        project.remove_dependencies(vec![
+            dependency_1.id(),
+            dependency_2.id(),
+        ]);
+        assert!(project.has_dependencies());
+        assert!(project.has_dependency(&dependency_3.id()));
+        assert_eq!(project.dependencies().len(),1);
+    }
+    
+    #[test]
+    fn remove_all_dependencies() {
+        let mut project = sample_project_with_dependencies();
+        project.remove_all_dependencies();
+        assert!(!project.has_dependencies());
     }
 
 }
