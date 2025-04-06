@@ -1,9 +1,9 @@
 use chrono::{Utc,Duration};
 
 use crate::models::project::{Project, ProjectStatus, ProjectSubElement};
-use crate::models::task::Task;
 use crate::models::tag::Tag;
 use crate::builders::project_builder::ProjectBuilder;
+use crate::factories::task_factory::*;
 use crate::HasId;
 
 pub fn sample_project() -> Project {
@@ -39,9 +39,9 @@ pub fn sample_project_with_child_projects_and_tasks() -> Project {
     let sub_project_1 = sample_project();
     let sub_project_2 = sample_project();
     let sub_project_3 = sample_project();
-        let child_task_1 = Task::new("");
-        let child_task_2 = Task::new("");
-        let child_task_3 = Task::new("");
+        let child_task_1 = sample_task();
+        let child_task_2 = sample_task();
+        let child_task_3 = sample_task();
     let children = vec![
         ProjectSubElement::Project(sub_project_1.id()),
         ProjectSubElement::Project(sub_project_2.id()),

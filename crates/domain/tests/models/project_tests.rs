@@ -2,11 +2,11 @@
 mod tests {
     use chrono::{Datelike, Timelike, Utc, Duration};
     use project_tracker_core::HasId;
-    use project_tracker_core::models::{person, task, tag, project};
+    use project_tracker_core::models::{person, tag, project};
     use project_tracker_core::builders::project_builder;
     use project_tracker_core::factories::project_factory::*;
+    use project_tracker_core::factories::task_factory::*;
     use person::Person;
-    use task::Task;
     use tag::Tag;
     use project::{ProjectStatus,ProjectSubElement};
     use project_builder::ProjectBuilder;
@@ -404,8 +404,7 @@ mod tests {
     #[test]
     fn add_child_task_to_project() {
         let mut project = sample_project();
-        let task_name = "This is a child task title";
-        let child_task = Task::new(task_name);
+        let child_task = sample_task();
         project.add_child(ProjectSubElement::Task(child_task.id()));
         assert!(project.has_children());
         assert!(project.children().len() == 1);
@@ -416,12 +415,9 @@ mod tests {
     #[test]
     fn add_multiple_child_tasks_to_project() {
         let mut project = sample_project();
-        let child_task_name_1 = "This is a child project title 1";
-        let child_task_1 = Task::new(child_task_name_1);
-        let child_task_name_2 = "This is a child project title 2";
-        let child_task_2 = Task::new(child_task_name_2);
-        let child_task_name_3 = "This is a child project title 3";
-        let child_task_3 = Task::new(child_task_name_3);
+        let child_task_1 = sample_task();
+        let child_task_2 = sample_task();
+        let child_task_3 = sample_task();
         let children = vec![
             ProjectSubElement::Task(child_task_1.id()),
             ProjectSubElement::Task(child_task_2.id()),
@@ -437,12 +433,9 @@ mod tests {
     #[test]
     fn remove_child_task_from_project() {
         let mut project = sample_project();
-        let child_task_name_1 = "This is a child project title 1";
-        let child_task_1 = Task::new(child_task_name_1);
-        let child_task_name_2 = "This is a child project title 2";
-        let child_task_2 = Task::new(child_task_name_2);
-        let child_task_name_3 = "This is a child project title 3";
-        let child_task_3 = Task::new(child_task_name_3);
+        let child_task_1 = sample_task();
+        let child_task_2 = sample_task();
+        let child_task_3 = sample_task();
         let children = vec![
             ProjectSubElement::Task(child_task_1.id()),
             ProjectSubElement::Task(child_task_2.id()),
@@ -463,12 +456,9 @@ mod tests {
     #[test]
     fn remove_multiple_child_tasks_from_project() {
         let mut project = sample_project();
-        let child_task_name_1 = "This is a child project title 1";
-        let child_task_1 = Task::new(child_task_name_1);
-        let child_task_name_2 = "This is a child project title 2";
-        let child_task_2 = Task::new(child_task_name_2);
-        let child_task_name_3 = "This is a child project title 3";
-        let child_task_3 = Task::new(child_task_name_3);
+        let child_task_1 = sample_task();
+        let child_task_2 = sample_task();
+        let child_task_3 = sample_task();
         let children = vec![
             ProjectSubElement::Task(child_task_1.id()),
             ProjectSubElement::Task(child_task_2.id()),
@@ -497,12 +487,9 @@ mod tests {
         let child_project_1 = sample_project();
         let child_project_2 = sample_project();
         let child_project_3 = sample_project();
-        let child_task_name_1 = "This is a child project title 1";
-        let child_task_1 = Task::new(child_task_name_1);
-        let child_task_name_2 = "This is a child project title 2";
-        let child_task_2 = Task::new(child_task_name_2);
-        let child_task_name_3 = "This is a child project title 3";
-        let child_task_3 = Task::new(child_task_name_3);
+        let child_task_1 = sample_task();
+        let child_task_2 = sample_task();
+        let child_task_3 = sample_task();
         let children = vec![
             ProjectSubElement::Project(child_project_1.id()),
             ProjectSubElement::Project(child_project_2.id()),
