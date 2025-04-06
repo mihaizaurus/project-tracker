@@ -1,6 +1,6 @@
 use crate::id::Id;
 use crate::{EntityType,HasId};
-use crate::models::project_builder::ProjectBuilder;
+use crate::builders::project_builder::ProjectBuilder;
 use crate::models::task::Task;
 use crate::models::person::Person;
 use crate::models::tag::Tag;

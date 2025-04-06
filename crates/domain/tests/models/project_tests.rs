@@ -2,7 +2,8 @@
 mod tests {
     use chrono::{Datelike, Timelike, Utc, Duration};
     use project_tracker_core::HasId;
-    use project_tracker_core::models::{person, task, tag, project, project_builder};
+    use project_tracker_core::models::{person, task, tag, project};
+    use project_tracker_core::builders::project_builder;
     use project_tracker_core::factories::project_factory::*;
     use person::Person;
     use task::Task;

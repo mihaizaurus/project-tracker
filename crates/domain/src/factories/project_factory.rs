@@ -3,7 +3,7 @@ use chrono::{Utc,Duration};
 use crate::models::project::{Project, ProjectStatus, ProjectSubElement};
 use crate::models::task::Task;
 use crate::models::tag::Tag;
-use crate::models::project_builder::ProjectBuilder;
+use crate::builders::project_builder::ProjectBuilder;
 use crate::HasId;
 
 pub fn sample_project() -> Project {
