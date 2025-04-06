@@ -1,19 +1,41 @@
 use crate::id::Id;
 use crate::{EntityType,HasId};
+use crate::models::person::Person;
+use crate::models::tag::Tag;
+use crate::models::project::ProjectStatus;
+use crate::builders::task_builder::TaskBuilder;
+
+use log::{error, info};
+use core::fmt;
+use chrono::{DateTime, Datelike, Utc};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Task {
     id: Id<Task>,
     name: String,
+    owner_id: Option<Id<Person>>,
     description: Option<String>,
+    tags: Vec<Id<Tag>>,
+    start_date: Option<DateTime<Utc>>,
+    due_date: Option<DateTime<Utc>>,
+    children: Vec<Id<Task>>,
+    dependencies: Vec<Id<Task>>,
+    status: ProjectStatus,
 }
 
 impl Task {
-    pub fn new(name: &str) -> Self {
+    pub fn from_builder(builder: TaskBuilder) -> Self {
         Task {
-            id: Id::<Task>::new(),
-            name: name.into(),
-            description: None,
+            id: builder.id(),
+            name: builder.name(),
+            owner_id: builder.owner_id(),
+            description: builder.description(),
+            tags: builder.tags(),
+            start_date: builder.start_date(),
+            due_date: builder.due_date(),
+            children: builder.children(),
+            dependencies: builder.dependencies(),
+            status: builder.status()
         }
     }
 
