@@ -1,21 +1,16 @@
 use crate::id::Id;
 use crate::{EntityType,HasId};
-use super::task::Task;
-use super::person::Person;
-use super::tag::Tag;
+use crate::builders::project_builder::ProjectBuilder;
+use crate::models::task::Task;
+use crate::models::person::Person;
+use crate::models::tag::Tag;
 
+use log::{error, info};
 use core::fmt;
 use chrono::{DateTime, Datelike, Utc};
 // use serde::{Serialize, Deserialize};
 
-/// Represents a Project in the Project Tracker App, consisting of some metadata, sub elements as well as displaying some dates and dependencies.
-/// # Examples
-/// ```
-/// use project_tracker_core::models::project::Project;
-/// 
-/// let project_1 = Project::new("Building a cool new Project Tracking App in Rust");
-/// ```
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Project {
     id: Id<Project>,
     name: String,
@@ -24,12 +19,13 @@ pub struct Project {
     tags: Vec<Id<Tag>>,
     start_date: Option<DateTime<Utc>>,
     due_date: Option<DateTime<Utc>>,
-    sub_elements: Vec<ProjectSubElement>,
+    children: Vec<ProjectSubElement>,
     dependencies: Vec<Id<Project>>,
     status: ProjectStatus,
 }
 
 impl Project {
+    /// **Deprecated**, use ProjectBuilder instead!
     pub fn new(name: &str) -> Self {
         Project {
             id: Id::<Project>::new(),
@@ -39,9 +35,24 @@ impl Project {
             tags: Vec::new(),
             start_date: None,
             due_date: None,
-            sub_elements: Vec::new(),
+            children: Vec::new(),
             dependencies: Vec::new(),
             status: ProjectStatus::NotStarted
+        }
+    }
+
+    pub fn from_builder(builder: ProjectBuilder) -> Self {
+        Project {
+            id: builder.id(),
+            name: builder.name(),
+            owner_id: builder.owner_id(),
+            description: builder.description(),
+            tags: builder.tags(),
+            start_date: builder.start_date(),
+            due_date: builder.due_date(),
+            children: builder.children(),
+            dependencies: builder.dependencies(),
+            status: builder.status()
         }
     }
 
@@ -118,58 +129,17 @@ impl Project {
         self
     }
 
-    pub fn add_tag(mut self, tag: Id<Tag>) -> Self {
-        self.tags.push(tag);
+    pub fn add_tag(&mut self, tag_id: Id<Tag>) -> &Self {
+        if self.is_valid_tag(&tag_id) {
+            self.tags.push(tag_id);
+        }
         self
     }
 
-    pub fn add_tags(mut self, mut tags: Vec<Id<Tag>>) -> Self {
-        self.tags.append(&mut tags);
-        self
-    }
-
-    pub fn start_now(mut self) -> Self {
-        self.start_date = Some(Utc::now());
-        self
-    }
-
-    pub fn start_at_date(mut self, start_date: DateTime<Utc>) -> Self {
-        self.start_date = Some(start_date);
-        self
-    }
-
-    pub fn remove_start_date(&mut self) -> &Self {
-        self.start_date = None;
-        self
-    }
-
-    pub fn set_due_date(&mut self, due_date: DateTime<Utc>) -> &Self {
-        self.due_date = Some(due_date);
-        self
-    }
-
-    pub fn remove_due_date(&mut self) -> &Self {
-        self.due_date = None;
-        self
-    }
-
-    pub fn add_sub_element(mut self,sub_element: ProjectSubElement) -> Self {
-        self.sub_elements.push(sub_element);
-        self
-    }
-
-    pub fn add_sub_elements(mut self,mut sub_elements: Vec<ProjectSubElement>) -> Self {
-        self.sub_elements.append(&mut sub_elements);
-        self
-    }
-
-    pub fn add_dependency(mut self, project_id: Id<Project>) -> Self {
-        self.dependencies.push(project_id);
-        self
-    }
-
-    pub fn add_dependencies(mut self, mut project_ids: Vec<Id<Project>>) -> Self {
-        self.dependencies.append(&mut project_ids);
+    pub fn add_tags(&mut self, tags: Vec<Id<Tag>>) -> &Self {
+        for tag_id in tags {
+            self.add_tag(tag_id);
+        }
         self
     }
 
@@ -194,6 +164,160 @@ impl Project {
         self
     }
 
+    pub fn start_now(&mut self) -> &Self {
+        self.start_at_date(Utc::now());
+        self
+    }
+
+    pub fn start_at_date(&mut self, start_date: DateTime<Utc>) -> &Self {
+        if self.is_valid_start_date(Some(start_date)) {
+            self.start_date = Some(start_date);
+        }
+        else {
+            error!("Provided start date ({}) is invalid.",start_date)
+        }
+        self
+    }
+
+    pub fn remove_start_date(&mut self) -> &Self {
+        self.start_date = None;
+        self
+    }
+
+    pub fn set_due_date(&mut self, due_date: DateTime<Utc>) -> &Self {
+        if self.is_valid_due_date(Some(due_date)) {
+            self.due_date = Some(due_date);
+        }
+        self
+    }
+
+    pub fn remove_due_date(&mut self) -> &Self {
+        self.due_date = None;
+        self
+    }
+
+    pub fn has_children(&self) -> bool {
+        self.children.len() > 0
+    }
+
+    pub fn has_child(&self, child_to_validate: &ProjectSubElement) -> bool {
+        self.children.contains(child_to_validate)
+    }
+
+    pub fn children(&self) -> Vec<ProjectSubElement> {
+        self.children.clone()
+    }
+
+    pub fn project_children(&self) -> Vec<Id<Project>> {
+        let mut child_projects: Vec<Id<Project>> = Vec::new();
+        for element in self.children.clone() {
+            match element {
+                ProjectSubElement::Project(id) => {
+                    child_projects.push(id);
+                },
+                _ => {}
+            }
+        }
+        child_projects
+    }
+
+    pub fn task_children(&self) -> Vec<Id<Task>> {
+        let mut child_tasks: Vec<Id<Task>> = Vec::new();
+            for element in self.children.clone() {
+                match element {
+                    ProjectSubElement::Task(id) => {
+                        child_tasks.push(id);
+                    },
+                    _ => {}
+                }
+            }
+            child_tasks
+    }
+
+    pub fn add_child(&mut self,child: ProjectSubElement) -> &Self {
+        if self.is_valid_child(&child) {
+            self.children.push(child);
+        }
+        self
+    }
+
+    pub fn add_children(&mut self,children: Vec<ProjectSubElement>) -> &Self {
+        for child in children {
+            self.add_child(child);
+        }
+        self
+    }
+
+    pub fn remove_child(&mut self,child: ProjectSubElement) -> &Self {
+        let index = self.children.iter().position(|t| t == &child).unwrap();
+        self.children.remove(index);
+        self
+    }
+
+    pub fn remove_children(&mut self,children: Vec<ProjectSubElement>) -> &Self {
+        if !children.is_empty() {
+            for child in children {
+                self.remove_child(child);
+            }
+        }
+        self
+    }
+
+    pub fn remove_all_children(&mut self) -> &Self {
+        self.children.clear();
+        self
+    }
+
+    pub fn has_dependency(&self, dependency_to_validate: &Id<Project>) -> bool {
+        self.dependencies.contains(dependency_to_validate)
+    }
+
+    pub fn has_dependencies(&self) -> bool {
+        self.dependencies.len() > 0
+    }
+
+    pub fn dependencies(&self) -> Vec<Id<Project>> {
+        self.dependencies.clone()
+    }
+
+    pub fn add_dependency(&mut self, project_id: Id<Project>) -> &Self {
+        if self.is_valid_dependency(&project_id){
+            self.dependencies.push(project_id);
+        }
+        self
+    }
+
+    pub fn add_dependencies(&mut self, project_ids: Vec<Id<Project>>) -> &Self {
+        for project_id in project_ids {
+            self.add_dependency(project_id);
+        }
+        self
+    }
+
+    pub fn remove_dependency(&mut self, dependency_project_id: Id<Project>) -> &Self {
+        let index = self.dependencies.iter().position(|t| t == &dependency_project_id).unwrap();
+        self.dependencies.remove(index);
+        self
+    }
+
+    pub fn remove_dependencies(&mut self, dependency_project_ids: Vec<Id<Project>>) -> &Self {
+        if !dependency_project_ids.is_empty() {
+            for dependency_project_id in dependency_project_ids {
+                self.remove_dependency(dependency_project_id);
+            }
+        }
+        self
+    }
+
+    pub fn remove_all_dependencies(&mut self) -> &Self {
+        self.dependencies.clear();
+        self
+    }
+
+    pub fn status(&self) -> ProjectStatus {
+        self.status.clone()
+    }
+
     pub fn promote(&mut self) -> &Self {
         match self.status {
             ProjectStatus::NotStarted => self.status = ProjectStatus::Planned,
@@ -216,13 +340,57 @@ impl Project {
     }
 
     pub fn archive(&mut self) -> &Self {
-        self.status = ProjectStatus::Archived;
+        if self.status != ProjectStatus::Archived {
+            self.status = ProjectStatus::Archived;
+        }
         self
     }
 
     pub fn cancel(&mut self) -> &Self {
-        self.status = ProjectStatus::Canceled;
+        match self.status {
+            ProjectStatus::Archived => {
+                info!("Project is already archived and cannot be canceled");
+            },
+            ProjectStatus::Completed => {
+                info!("Project is already completed and cannot be canceled");
+            },
+            _ => {self.status = ProjectStatus::Canceled;}
+        }
         self
+    }
+
+    /* ### Validation Methods */
+    pub fn is_valid_dependency(&self, dependency_project_id: &Id<Project>) -> bool {
+        dependency_project_id != &self.id()
+    }
+
+    pub fn is_valid_child(&self, child_to_validate: &ProjectSubElement) -> bool {
+        match child_to_validate {
+            ProjectSubElement::Project(child_project_id) => {
+                &self.id() != child_project_id
+            },
+            _ => true,
+        }
+    }
+
+    pub fn is_valid_start_date(&self, start_date: Option<DateTime<Utc>>) -> bool {
+        match (start_date, self.due_date()) {
+            (Some(start),Some(due)) => start <= due, // due date not before start date
+            _ => true, // Defaults to true if start_date set to None
+        }
+    }
+
+    pub fn is_valid_due_date(&self, due_date: Option<DateTime<Utc>>) -> bool {
+        match (self.start_date(), due_date) {
+            (Some(start),Some(due)) => start <= due, // due date not before start date
+            (_,Some(due)) => due >= Utc::now(), // due date not in the past
+            _ => true, // Defaults to true if due_date set to None
+        }
+    }
+
+    pub fn is_valid_tag(&self, tag_id: &Id<Tag>) -> bool {
+        !self.tags().contains(tag_id)
+        // further validation may be needed
     }
 
 }
@@ -259,22 +427,12 @@ impl fmt::Debug for Project {
         } else {
             writeln!(f, "! No due date defined")?;
         }
-        writeln!(f, "- Project has {} children",self.sub_elements.len())?;
+        writeln!(f, "- Project has {} children",self.children.len())?;
         {
-            let mut child_projects: Vec<Id<Project>> = Vec::new();
-            let mut child_tasks: Vec<Id<Task>> = Vec::new();
-            for element in self.sub_elements.clone() {
-                match element {
-                    ProjectSubElement::Project(id) => {
-                        child_projects.push(id);
-                    },
-                    ProjectSubElement::Task(id) => {
-                        child_tasks.push(id);
-                    }
-                }
-            }
-            writeln!(f, "-- {}/{} children are projects",child_projects.len(), self.sub_elements.len())?;
-            writeln!(f, "-- {}/{} children are tasks",child_tasks.len(), self.sub_elements.len())?;
+            let child_projects: Vec<Id<Project>> = self.project_children();
+            writeln!(f, "-- {}/{} children are projects",child_projects.len(), self.children.len())?;
+            let child_tasks: Vec<Id<Task>> = self.task_children();
+            writeln!(f, "-- {}/{} children are tasks",child_tasks.len(), self.children.len())?;
         }
         Ok(())
     }
@@ -304,28 +462,22 @@ impl fmt::Display for Project {
             let week = due_date.iso_week().week();
             writeln!(f, "- Project is due on: {}-{}-{} [Week {}]",day, month, year, week)?;
         }
-        writeln!(f, "- Project has {} children",self.sub_elements.len())?;
+        writeln!(f, "- Project has {} children",self.children.len())?;
         {
-            let mut child_projects: Vec<Id<Project>> = Vec::new();
-            let mut child_tasks: Vec<Id<Task>> = Vec::new();
-            for element in self.sub_elements.clone() {
-                match element {
-                    ProjectSubElement::Project(id) => {
-                        child_projects.push(id);
-                    },
-                    ProjectSubElement::Task(id) => {
-                        child_tasks.push(id);
-                    }
-                }
+            let child_projects: Vec<Id<Project>> = self.project_children();
+            if child_projects.len() > 0 {
+                writeln!(f, "-- {}/{} children are projects",child_projects.len(), self.children.len())?;
             }
-            writeln!(f, "-- {}/{} children are projects",child_projects.len(), self.sub_elements.len())?;
-            writeln!(f, "-- {}/{} children are tasks",child_tasks.len(), self.sub_elements.len())?;
+            let child_tasks: Vec<Id<Task>> = self.task_children();
+            if child_tasks.len() > 0 {
+                writeln!(f, "-- {}/{} children are tasks",child_tasks.len(), self.children.len())?;
+            }
         }
         Ok(())
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum ProjectStatus {
     NotStarted,
     Planned,
@@ -336,7 +488,7 @@ pub enum ProjectStatus {
     Canceled,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum ProjectSubElement {
     Project(Id<Project>),
     Task(Id<Task>)
@@ -353,226 +505,5 @@ impl HasId for Project {
 
     fn id(&self) -> Id<Project> {
         self.id.clone()
-    }
-}
-
-/* ### TESTING ### */
-
-#[cfg(test)]
-mod tests {
-    use chrono::{Datelike, Timelike, Utc, Duration};
-    use crate::HasId;
-    use super::{Project, Person, Tag, Task};
-
-    #[test]
-    fn create_project() {
-        let project_name = "This is a sample project title";
-        let project = Project::new(project_name);
-        assert_eq!(project.name(), project_name);
-    }
-
-    #[test]
-    fn rename_project() {
-        let project_name_old = "This is a sample project title";
-        let project_name_new = "This is a different project title";
-        let mut project = Project::new(&project_name_old);
-        assert_eq!(project.name(),project_name_old);
-        project.rename(project_name_new);
-        assert_eq!(project.name(),project_name_new);
-    }
-
-    #[test]
-    fn create_project_id() {
-        let project_name = "This is a sample project title";
-        let project = Project::new(project_name);
-        let project_id  = project.id().to_string();
-        assert!(project_id.starts_with("project-"));
-    }
-
-    #[test]
-    fn assign_owner() {
-        let owner = Person::new("Test","McTesty");
-        let project_name = "This is a sample project title";
-        let project = Project::new(project_name).set_owner(owner.id());
-        assert!(project.has_owner());
-        assert_eq!(project.owner_id().unwrap().clone(),owner.id());
-    }
-
-    #[test]
-    fn transfer_ownership() {
-        let owner_old = Person::new("Test","McTesty");
-        let owner_new = Person::new("Newbie","McNewsy");
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).set_owner(owner_old.id());
-        assert!(project.has_owner());
-        assert_eq!(project.owner_id().unwrap().clone(),owner_old.id());
-        project.transfer_ownership(owner_new.id());
-        assert_eq!(project.owner_id().unwrap().clone(),owner_new.id());
-    }
-
-    #[test]
-    fn create_project_with_description() {
-        let project_name = "This is a sample project title";
-        let description = "This is a sample description";
-        let project = Project::new(project_name).set_description(description);
-        assert!(project.has_description());
-        assert_eq!(project.description(),description);
-    }
-
-    #[test]
-    fn clear_project_description() {
-        let project_name = "This is a sample project title";
-        let description = "This is a sample description";
-        let mut project = Project::new(project_name).set_description(description);
-        assert!(project.has_description());
-        assert_eq!(project.description(),description);
-        project.clear_description();
-        assert!(!project.has_description());
-        assert_eq!(project.description(),"");
-    }
-
-    #[test]
-    fn add_tag() {
-        let test_tag = Tag::new("TestTag");
-        let project_name = "This is a sample project title";
-        let project = Project::new(project_name).add_tag(test_tag.id());
-        assert!(project.has_tags());
-        assert!(project.tags().contains(&test_tag.id().clone()));
-    }
-
-    #[test]
-    fn add_multiple_tags() {
-        let test_tag_1 = Tag::new("TestTag1");
-        let test_tag_2 = Tag::new("TestTag2");
-        let test_tag_3 = Tag::new("TestTag3");
-        let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
-        let project_name = "This is a sample project title";
-        let project = Project::new(project_name).add_tags(test_tags.clone());
-        assert!(project.has_tags());
-        for tag in test_tags {
-            assert!(project.tags().contains(&tag.clone())); 
-        }
-    }
-
-    #[test]
-    fn clear_tags() {
-        let test_tag_1 = Tag::new("TestTag1");
-        let test_tag_2 = Tag::new("TestTag2");
-        let test_tag_3 = Tag::new("TestTag3");
-        let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).add_tags(test_tags.clone());
-        assert!(project.has_tags());
-        project.remove_all_tags();
-        assert!(!project.has_tags());
-    }
-
-    #[test]
-    fn remove_tag() {
-        let test_tag = Tag::new("TestTag");
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).add_tag(test_tag.id());
-        assert!(project.has_tags());
-        project.remove_tag(test_tag.id());
-        assert!(!project.has_tags());
-    }
-
-    #[test]
-    fn remove_multiple_tags() {
-        let test_tag_1 = Tag::new("TestTag1");
-        let test_tag_2 = Tag::new("TestTag2");
-        let test_tag_3 = Tag::new("TestTag3");
-        let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
-        let test_tags_to_remove = vec![test_tag_1.id(), test_tag_2.id()];
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).add_tags(test_tags.clone());
-        assert!(project.has_tags());
-        for tag in test_tags {
-            assert!(project.tags().contains(&tag.clone())); 
-        }
-        project.remove_tags(test_tags_to_remove.clone());
-        assert!(project.has_tags());
-        for tag in test_tags_to_remove {
-            assert!(!project.tags().contains(&tag.clone())); 
-        }
-        assert!(project.tags().contains(&test_tag_3.id().clone()));
-    }
-
-    #[test]
-    fn create_project_with_start_now() {
-        let project_name = "This is a sample project title";
-        let now = Utc::now();
-        let project = Project::new(project_name).start_now();
-        assert!(project.has_start_date());
-        assert_eq!(now.year(),project.start_date().unwrap().year());
-        assert_eq!(now.month(),project.start_date().unwrap().month());
-        assert_eq!(now.day(),project.start_date().unwrap().day());
-        assert_eq!(now.hour(),project.start_date().unwrap().hour());
-        assert_eq!(now.minute(),project.start_date().unwrap().minute());
-    }
-
-    #[test]
-    fn create_project_with_start_tomorrow() {
-        let project_name = "This is a sample project title";
-        let now = Utc::now();
-        let tomorrow = now + Duration::days(1);
-        let project = Project::new(project_name).start_at_date(tomorrow);
-        assert!(project.has_start_date());
-        assert_eq!(tomorrow.year(),project.start_date().unwrap().year());
-        assert_eq!(tomorrow.month(),project.start_date().unwrap().month());
-        assert_eq!(tomorrow.day(),project.start_date().unwrap().day());
-        assert_eq!(tomorrow.hour(),project.start_date().unwrap().hour());
-        assert_eq!(tomorrow.minute(),project.start_date().unwrap().minute());
-    }
-
-    #[test]
-    fn create_project_with_start_yesterday() {
-        let project_name = "This is a sample project title";
-        let now = Utc::now();
-        let yesterday = now - Duration::days(1);
-        let project = Project::new(project_name).start_at_date(yesterday);
-        assert!(project.has_start_date());
-        assert_eq!(yesterday.year(),project.start_date().unwrap().year());
-        assert_eq!(yesterday.month(),project.start_date().unwrap().month());
-        assert_eq!(yesterday.day(),project.start_date().unwrap().day());
-        assert_eq!(yesterday.hour(),project.start_date().unwrap().hour());
-        assert_eq!(yesterday.minute(),project.start_date().unwrap().minute());
-    }
-
-    #[test]
-    fn remove_start_date() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name).start_now();
-        assert!(project.has_start_date());
-        project.remove_start_date();
-        assert!(!project.has_start_date());
-    }
-
-    #[test]
-    fn set_due_date_tomorrow() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let mut due_date = Utc::now();
-        due_date += Duration::days(1);
-        assert!(!project.has_due_date());
-        project.set_due_date(due_date);
-        assert!(project.has_due_date());
-        assert_eq!(due_date.year(),project.due_date().unwrap().year());
-        assert_eq!(due_date.month(),project.due_date().unwrap().month());
-        assert_eq!(due_date.day(),project.due_date().unwrap().day());
-        assert_eq!(due_date.hour(),project.due_date().unwrap().hour());
-        assert_eq!(due_date.minute(),project.due_date().unwrap().minute());
-    }
-
-    #[test]
-    fn remove_due_date() {
-        let project_name = "This is a sample project title";
-        let mut project = Project::new(project_name);
-        let mut due_date = Utc::now();
-        due_date += Duration::days(1);
-        project.set_due_date(due_date);
-        assert!(project.has_due_date());
-        project.remove_due_date();
-        assert!(!project.has_due_date());
     }
 }

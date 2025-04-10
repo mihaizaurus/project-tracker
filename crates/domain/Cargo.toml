@@ -9,3 +9,4 @@ readme = "README.md"
 chrono = { version = "0.4.40", features = ["serde"] }
 ulid = { version = "1.2.1" }
 serde = { version = "1.0.219" }
+log = { version = "0.4.27" }
