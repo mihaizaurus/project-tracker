@@ -24,6 +24,11 @@ pub fn sample_task_with_tags() -> Task {
     TaskBuilder::new().with_tags(tags).build()
 }
 
+pub fn sample_task_with_due_date() -> Task {
+    let due_date = Utc::now() + Duration::days(1);
+    TaskBuilder::new().with_due_date(due_date).build()
+}
+
 pub fn sample_task_with_children() -> Task {
 
     let child_task_1 = sample_task();
