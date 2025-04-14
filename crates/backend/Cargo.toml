@@ -7,4 +7,5 @@ edition = "2024"
 project-tracker-core = { path = "../domain" }
 project-tracker-db = { path = "../db" }
 project-tracker-db-mock = { path = "../db-mock" }
+chrono = { version = "0.4.40", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive"] }
