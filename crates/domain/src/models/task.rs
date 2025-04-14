@@ -346,6 +346,74 @@ impl Task {
     }
 }
 
+impl fmt::Debug for Task {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Task [[{}]]",self.name)?;
+        writeln!(f, "- Task Id:{:?}",self.id)?;
+        if let Some(description) = &self.description {
+            writeln!(f, "- Task Description: {}",description)?;
+        } else {
+            writeln!(f, "! No description provided")?;
+        }
+        if let Some(owner_id) = &self.owner_id {
+            writeln!(f, "- Task Owner: {:?}",owner_id)?;
+        } else {
+            writeln!(f, "! No project owner")?;
+        }
+        if let Some(start_date) = &self.start_date {
+            let year = start_date.year();
+            let month = start_date.month();
+            let day = start_date.day();
+            let week = start_date.iso_week().week();
+            writeln!(f, "- Task starts on: {}-{}-{} [Week {}]",day, month, year, week)?;
+        } else {
+            writeln!(f, "! No start date defined")?;
+        }
+        if let Some(due_date) = &self.due_date {
+            let year = due_date.year();
+            let month = due_date.month();
+            let day = due_date.day();
+            let week = due_date.iso_week().week();
+            writeln!(f, "- Task is due on: {}-{}-{} [Week {}]",day, month, year, week)?;
+        } else {
+            writeln!(f, "! No due date defined")?;
+        }
+        writeln!(f, "- Task has {} children",self.children.len())?;
+        writeln!(f, "- Task has {} dependencies",self.dependencies.len())?;
+        Ok(())
+    }
+}
+
+impl fmt::Display for Task {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "[[{}]]",self.name)?;
+        writeln!(f, "- Task Id: {}",self.id)?;
+        if let Some(description) = &self.description {
+            writeln!(f, "- Task Description: {}",description)?;
+        }
+        if let Some(owner_id) = &self.owner_id {
+            writeln!(f, "- Task Owner: {}",owner_id)?;
+        }
+        if let Some(start_date) = &self.start_date {
+            let year = start_date.year();
+            let month = start_date.month();
+            let day = start_date.day();
+            let week = start_date.iso_week().week();
+            writeln!(f, "- Task starts on: {}-{}-{} [Week {}]",day, month, year, week)?;
+        }
+        if let Some(due_date) = &self.due_date {
+            let year = due_date.year();
+            let month = due_date.month();
+            let day = due_date.day();
+            let week = due_date.iso_week().week();
+            writeln!(f, "- Task is due on: {}-{}-{} [Week {}]",day, month, year, week)?;
+        }
+        writeln!(f, "- Task has {} children",self.children.len())?;
+        writeln!(f, "- Task has {} dependencies",self.dependencies.len())?;
+        Ok(())
+    }
+}
+
 impl EntityType for Task {
     fn prefix() -> &'static str {
         "task"
