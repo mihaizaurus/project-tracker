@@ -3,11 +3,10 @@ mod tests {
     use chrono::{Datelike, Timelike, Utc, Duration};
     use project_tracker_core::HasId;
     use project_tracker_core::builders::task_builder::*;
-    use project_tracker_core::factories::task_factory::*;
-    use project_tracker_core::models::{person,tag, project};
+    use project_tracker_core::factories::{task_factory::*, tag_factory::*};
+    use project_tracker_core::models::{person, project};
     use project::ProjectStatus;
     use person::Person;
-    use tag::Tag;
 
     #[test]
     fn create_task() {
@@ -66,7 +65,7 @@ mod tests {
 
     #[test]
     fn add_tag() {
-        let test_tag = Tag::new("TestTag");
+        let test_tag = sample_tag();
         let mut task = sample_task();
         task.add_tag(test_tag.id());
         assert!(task.has_tags());
@@ -75,10 +74,7 @@ mod tests {
 
     #[test]
     fn add_multiple_tags() {
-        let test_tag_1 = Tag::new("TestTag1");
-        let test_tag_2 = Tag::new("TestTag2");
-        let test_tag_3 = Tag::new("TestTag3");
-        let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
+        let test_tags = sample_tags_list();
         let mut task = sample_task();
         task.add_tags(test_tags.clone());
         assert!(task.has_tags());
@@ -97,7 +93,7 @@ mod tests {
 
     #[test]
     fn remove_tag() {
-        let test_tag = Tag::new("TestTag");
+        let test_tag = sample_tag();
         let mut task = TaskBuilder::new().with_tags(vec![test_tag.id()]).build();
         assert!(task.has_tags());
         task.remove_tag(test_tag.id());
@@ -106,9 +102,9 @@ mod tests {
 
     #[test]
     fn remove_multiple_tags() {
-        let test_tag_1 = Tag::new("TestTag1");
-        let test_tag_2 = Tag::new("TestTag2");
-        let test_tag_3 = Tag::new("TestTag3");
+        let test_tag_1 = sample_tag();
+        let test_tag_2 = sample_tag();
+        let test_tag_3 = sample_tag();
         let test_tags = vec![test_tag_1.id(), test_tag_2.id(), test_tag_3.id()];
         let test_tags_to_remove = vec![test_tag_1.id(), test_tag_2.id()];
         let mut task = TaskBuilder::new().with_tags(test_tags.clone()).build();

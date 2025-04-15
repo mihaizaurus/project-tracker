@@ -3,12 +3,21 @@ use chrono::{Utc,Duration};
 use crate::models::project::ProjectStatus;
 use crate::models::person::Person;
 use crate::models::task::Task;
-use crate::models::tag::Tag;
 use crate::builders::task_builder::TaskBuilder;
 use crate::HasId;
+use crate::id::Id;
+
+use super::tag_factory::*;
 
 pub fn sample_task() -> Task {
     TaskBuilder::new().with_name("This is a sample task").build()
+}
+
+pub fn sample_tasks_list() -> Vec<Id<Task>> {
+    let task_1 = sample_task();
+    let task_2 = sample_task();
+    let task_3 = sample_task();
+    vec![task_1.id(), task_2.id(), task_3.id()]
 }
 
 pub fn sample_task_with_owner() -> Task {
@@ -17,10 +26,7 @@ pub fn sample_task_with_owner() -> Task {
 }
 
 pub fn sample_task_with_tags() -> Task {
-    let tag_1 = Tag::new("TestTag1");
-    let tag_2 = Tag::new("TestTag2");
-    let tag_3 = Tag::new("TestTag3");
-    let tags = vec![tag_1.id(), tag_2.id(), tag_3.id()];
+    let tags = sample_tags_list();
     TaskBuilder::new().with_tags(tags).build()
 }
 
@@ -31,14 +37,7 @@ pub fn sample_task_with_due_date() -> Task {
 
 pub fn sample_task_with_children() -> Task {
 
-    let child_task_1 = sample_task();
-    let child_task_2 = sample_task();
-    let child_task_3 = sample_task();
-    let children = vec![
-        child_task_1.id(),
-        child_task_2.id(),
-        child_task_3.id()
-    ];
+    let children = sample_tasks_list();
     TaskBuilder::new().with_children(children).build()
 }
 
