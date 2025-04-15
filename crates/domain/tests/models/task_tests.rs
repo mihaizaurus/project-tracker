@@ -2,10 +2,8 @@
 use chrono::{Datelike, Timelike, Utc, Duration};
 use project_tracker_core::HasId;
 use project_tracker_core::builders::task_builder::*;
-use project_tracker_core::factories::{task_factory::*, tag_factory::*};
-use project_tracker_core::models::{person, project};
-use project::ProjectStatus;
-use person::Person;
+use project_tracker_core::factories::{task_factory::*,tag_factory::*,person_factory::*};
+use project_tracker_core::models::project::ProjectStatus;
 
 #[test]
 fn create_task() {
@@ -30,7 +28,7 @@ fn create_task_id() {
 
 #[test]
 fn assign_task_owner() {
-    let owner = Person::new("Test","McTesty");
+    let owner = sample_person();
     let task = TaskBuilder::new().with_owner_id(owner.id()).build();
     assert!(task.has_owner());
     assert_eq!(task.owner_id().unwrap().clone(),owner.id());
@@ -38,7 +36,7 @@ fn assign_task_owner() {
 
 #[test]
 fn transfer_task_ownership() {
-    let owner_new = Person::new("Newbie","McNewsy");
+    let owner_new = sample_person();
     let mut task = sample_task();
     task.transfer_ownership(owner_new.id());
     assert!(task.has_owner());
