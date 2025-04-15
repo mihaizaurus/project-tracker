@@ -1,10 +1,8 @@
 use chrono::{Datelike, Timelike, Utc, Duration};
 use project_tracker_core::HasId;
-use project_tracker_core::models::{person, project};
+use project_tracker_core::models::project::{ProjectStatus,ProjectSubElement};
 use project_tracker_core::builders::project_builder;
-use project_tracker_core::factories::{project_factory::*,task_factory::*,tag_factory::*};
-use person::Person;
-use project::{ProjectStatus,ProjectSubElement};
+use project_tracker_core::factories::{project_factory::*,task_factory::*,tag_factory::*,person_factory::*};
 use project_builder::ProjectBuilder;
 
 #[test]
@@ -32,7 +30,7 @@ fn create_project_id() {
 
 #[test]
 fn assign_owner() {
-    let owner = Person::new("Test","McTesty");
+    let owner = sample_person();
     let project = ProjectBuilder::new().with_owner_id(owner.id()).build();
     assert!(project.has_owner());
     assert_eq!(project.owner_id().unwrap().clone(),owner.id());
@@ -40,7 +38,7 @@ fn assign_owner() {
 
 #[test]
 fn transfer_ownership() {
-    let owner_new = Person::new("Newbie","McNewsy");
+    let owner_new = sample_person();
     let mut project = sample_project();
     project.transfer_ownership(owner_new.id());
     assert!(project.has_owner());

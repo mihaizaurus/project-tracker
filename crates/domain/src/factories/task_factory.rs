@@ -1,9 +1,9 @@
 use chrono::{Utc,Duration};
 
 use crate::models::project::ProjectStatus;
-use crate::models::person::Person;
 use crate::models::task::Task;
 use crate::builders::task_builder::TaskBuilder;
+use crate::factories::person_factory::*;
 use crate::HasId;
 use crate::id::Id;
 
@@ -21,7 +21,7 @@ pub fn sample_tasks_list() -> Vec<Id<Task>> {
 }
 
 pub fn sample_task_with_owner() -> Task {
-    let owner = Person::new("Sample", "Owner");
+    let owner = sample_person();
     TaskBuilder::new().with_owner_id(owner.id()).build()
 }
 
