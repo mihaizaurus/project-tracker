@@ -48,7 +48,7 @@ impl Tag {
         }
     }
 
-    pub fn set_description(mut self, description: impl Into<String>) -> Self {
+    pub fn set_description(&mut self, description: impl Into<String>) -> &Self {
         self.description = Some(description.into());
         self
     }
@@ -56,6 +56,14 @@ impl Tag {
     pub fn clear_description(&mut self) -> &Self {
         self.description = None;
         self
+    }
+
+    pub fn has_parents(&self) -> bool {
+        self.parents.len() > 0
+    }
+
+    pub fn parents(&self) -> Vec<Id<Tag>> {
+        self.parents.clone()
     }
 
     pub fn add_parent(&mut self, tag_id: Id<Tag>) -> &Self {
