@@ -1,9 +1,5 @@
-use chrono::{Datelike, Timelike, Utc, Duration};
 use project_tracker_core::HasId;
-use project_tracker_core::models::{person, project};
-use project_tracker_core::builders::tag_builder;
 use project_tracker_core::factories::tag_factory::*;
-use tag_builder::TagBuilder;
 
 #[test]
 fn create_tag() {
