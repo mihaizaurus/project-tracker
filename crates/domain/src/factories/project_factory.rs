@@ -1,20 +1,27 @@
 use chrono::{Utc,Duration};
 
 use crate::models::project::{Project, ProjectStatus, ProjectSubElement};
-use crate::models::tag::Tag;
 use crate::builders::project_builder::ProjectBuilder;
-use crate::factories::task_factory::*;
+use crate::factories::{task_factory::*,tag_factory::*};
 use crate::HasId;
 
 pub fn sample_project() -> Project {
     ProjectBuilder::new().with_name("This is a sample project title").build()
 }
 
+pub fn sample_projects_list() -> Vec<ProjectSubElement> {
+    let project1 = sample_project();
+    let project2 = sample_project();
+    let project3 = sample_project();
+    vec![
+        ProjectSubElement::Project(project1.id()), 
+        ProjectSubElement::Project(project2.id()), 
+        ProjectSubElement::Project(project3.id())
+    ]
+}
+
 pub fn sample_project_with_tags() -> Project {
-    let tag_1 = Tag::new("TestTag1");
-    let tag_2 = Tag::new("TestTag2");
-    let tag_3 = Tag::new("TestTag3");
-    let tags = vec![tag_1.id(), tag_2.id(), tag_3.id()];
+    let tags = sample_tags_list();
     ProjectBuilder::new().with_tags(tags).build()
 }
 
@@ -24,14 +31,7 @@ pub fn sample_project_with_due_date() -> Project {
 }
 
 pub fn sample_project_with_child_projects() -> Project {
-    let sub_project_1 = sample_project();
-    let sub_project_2 = sample_project();
-    let sub_project_3 = sample_project();
-    let children = vec![
-        ProjectSubElement::Project(sub_project_1.id()),
-        ProjectSubElement::Project(sub_project_2.id()),
-        ProjectSubElement::Project(sub_project_3.id())
-    ];
+    let children = sample_projects_list();
     ProjectBuilder::new().with_children(children).build()
 }
 
