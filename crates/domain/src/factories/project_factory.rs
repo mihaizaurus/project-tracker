@@ -22,7 +22,7 @@ pub fn sample_projects_list() -> Vec<ProjectSubElement> {
 
 pub fn sample_project_with_tags() -> Project {
     let tags = sample_tags_list();
-    ProjectBuilder::new().with_tags(tags).build()
+    ProjectBuilder::new().with_name("Sample Project with Tags").with_tags(tags).build()
 }
 
 pub fn sample_project_with_due_date() -> Project {
