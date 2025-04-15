@@ -1,6 +1,8 @@
 use crate::id::Id;
 use crate::{EntityType, HasId};
 use crate::builders::tag_builder::TagBuilder;
+use core::fmt;
+use log::error;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Tag {
@@ -25,7 +27,12 @@ impl Tag {
     }
 
     pub fn rename(&mut self, name: &str) -> &Self {
-        self.name = name.into();
+        if self.is_valid_name(name) {
+            self.name = name.into();
+        }
+        else {
+            error!("Provided tag nane ({}) is invalid.",name)
+        }
         self
     }
 
@@ -86,8 +93,38 @@ impl Tag {
         self
     }
 
+    pub fn is_valid_name(&self, name: &str) -> bool {
+        !name.contains(char::is_whitespace)
+    }
+
     pub fn is_valid_parent(&self, parent_to_validate: &Id<Tag>) -> bool {
         &self.id() != parent_to_validate
+    }
+}
+
+impl fmt::Debug for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Tag [[{}]]",self.name)?;
+        writeln!(f, "- Tag Id:{:?}",self.id)?;
+        if let Some(description) = &self.description {
+            writeln!(f, "- Tag Description: {}",description)?;
+        } else {
+            writeln!(f, "! No description provided")?;
+        }
+        writeln!(f, "- Tag has {} parents",self.parents.len())?;
+        Ok(())
+    }
+}
+
+impl fmt::Display for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "[[{}]]",self.name)?;
+        writeln!(f, "- Tag Id: {}",self.id)?;
+        if let Some(description) = &self.description {
+            writeln!(f, "- Tag Description: {}",description)?;
+        }
+        writeln!(f, "- Tag has {} parents",self.parents.len())?;
+        Ok(())
     }
 }
 

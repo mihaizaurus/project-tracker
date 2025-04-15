@@ -434,6 +434,8 @@ impl fmt::Debug for Project {
             let child_tasks: Vec<Id<Task>> = self.task_children();
             writeln!(f, "-- {}/{} children are tasks",child_tasks.len(), self.children.len())?;
         }
+        writeln!(f, "- Project has {} dependencies",self.dependencies.len())?;
+        writeln!(f, "- Project has {} tags",self.tags.len())?;
         Ok(())
     }
 }
@@ -473,6 +475,8 @@ impl fmt::Display for Project {
                 writeln!(f, "-- {}/{} children are tasks",child_tasks.len(), self.children.len())?;
             }
         }
+        writeln!(f, "- Project has {} dependencies",self.dependencies.len())?;
+        writeln!(f, "- Project has {} tags",self.tags.len())?;
         Ok(())
     }
 }

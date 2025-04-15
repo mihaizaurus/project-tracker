@@ -4,7 +4,7 @@ use crate::id::Id;
 use crate::HasId;
 
 pub fn sample_tag() -> Tag {
-    TagBuilder::new().with_name("SampleTag").build()
+    TagBuilder::new().with_name("SampleTag").with_description("This is a sample Tag").build()
 }
 
 pub fn sample_tags_list() -> Vec<Id<Tag>> {

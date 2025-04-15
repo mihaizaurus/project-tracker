@@ -10,7 +10,7 @@ use crate::id::Id;
 use super::tag_factory::*;
 
 pub fn sample_task() -> Task {
-    TaskBuilder::new().with_name("This is a sample task").build()
+    TaskBuilder::new().with_name("This is a sample task").with_description("This is a sample task").build()
 }
 
 pub fn sample_tasks_list() -> Vec<Id<Task>> {
