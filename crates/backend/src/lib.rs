@@ -1,5 +1,6 @@
 pub mod app;
 pub mod db;
+pub mod dto;
 pub mod routes;
 pub mod services;
 pub mod handlers;
