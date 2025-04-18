@@ -1,21 +1,36 @@
+use project_tracker_core::{
+    factories::{
+        project_factory::*,
+        task_factory::*,
+        tag_factory::*
+    },
+    models::{
+        milestone,
+        person,
+        project,
+        tag,
+        task
+    },
+    HasId,
+};
+use project_tracker_backend::{app, db, errors, routes, services, handlers};
+
 // use project_tracker_core::{models::{milestone, person, project, tag, task}, HasId};
 // use person::Person;
 // use project::Project;
 // use tag::Tag;
 // use task::Task;
 
-use project_tracker_core::factories::{project_factory::*, task_factory::*, tag_factory::*};
+#[tokio::main]
+async fn main() {
+    /* --- What to do --- 
+    1. get HTTP response and send to router to match
+    2. router sends request to handler based on what it is (GET, POST, DELETE, etc.)
+    3. Handles takes care of the parsing and sends the data to the appropriate service
+    4. Service manages relation to the repository (db, memory, etc.)
+        4.1 here the domain logic is processed to create, validate, update, delete items
+    5. the db sends a response to the service, which sends a response to the handler, which encodes and sends an HTTP response to the client
+    */
 
-fn main() {
-    let task1 = sample_task();
-    println!("{task1}");
-
-    let task2 = sample_task_with_due_date();
-    println!("{task2}");
-
-    let project1 = sample_project_with_tags();
-    println!("{project1}");
-
-    let tag1 = sample_tag();
-    println!("{tag1}");
+    app::run().await; // will bootstrap the server to start running
 }
