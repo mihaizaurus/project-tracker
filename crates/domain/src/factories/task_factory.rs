@@ -9,6 +9,12 @@ use crate::id::Id;
 
 use super::tag_factory::*;
 
+pub fn basic_task() -> Task {
+    TaskBuilder::new().build()
+}
+
+// region: Factories for Tests
+
 pub fn sample_task() -> Task {
     TaskBuilder::new().with_name("This is a sample task").with_description("This is a sample task").build()
 }
@@ -75,3 +81,5 @@ pub fn sample_scheduled_task() -> Task {
     let due_date = Utc::now() + Duration::days(1);
     TaskBuilder::new().with_star_date(start_date).with_due_date(due_date).build()
 }
+
+// endregion: Factories for Tests
