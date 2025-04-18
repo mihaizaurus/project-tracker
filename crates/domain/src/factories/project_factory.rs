@@ -5,6 +5,12 @@ use crate::builders::project_builder::ProjectBuilder;
 use crate::factories::{task_factory::*,tag_factory::*};
 use crate::HasId;
 
+/// Basic **Project** with default values
+pub fn basic_project() -> Project {
+    ProjectBuilder::new().build()
+}
+
+// region: Factories for Tests
 pub fn sample_project() -> Project {
     ProjectBuilder::new().with_name("This is a sample project title").build()
 }
@@ -81,3 +87,5 @@ pub fn sample_project_with_dependencies() -> Project {
     let dependency = sample_project();
     ProjectBuilder::new().with_dependencies(vec![dependency.id()]).build()
 }
+
+// endregion: Factories for Tests
