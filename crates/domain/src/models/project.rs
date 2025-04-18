@@ -8,6 +8,7 @@ use crate::models::tag::Tag;
 use log::{error, info};
 use core::fmt;
 use chrono::{DateTime, Datelike, Utc};
+use serde::{Serialize, Deserialize};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Project {
@@ -464,7 +465,7 @@ impl fmt::Display for Project {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProjectStatus {
     NotStarted,
     Planned,
