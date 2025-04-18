@@ -8,7 +8,6 @@ use crate::models::tag::Tag;
 use log::{error, info};
 use core::fmt;
 use chrono::{DateTime, Datelike, Utc};
-// use serde::{Serialize, Deserialize};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Project {
@@ -25,22 +24,6 @@ pub struct Project {
 }
 
 impl Project {
-    /// **Deprecated**, use ProjectBuilder instead!
-    pub fn new(name: &str) -> Self {
-        Project {
-            id: Id::<Project>::new(),
-            name: name.into(),
-            owner_id: None,
-            description: None,
-            tags: Vec::new(),
-            start_date: None,
-            due_date: None,
-            children: Vec::new(),
-            dependencies: Vec::new(),
-            status: ProjectStatus::NotStarted
-        }
-    }
-
     pub fn from_builder(builder: ProjectBuilder) -> Self {
         Project {
             id: builder.id(),
