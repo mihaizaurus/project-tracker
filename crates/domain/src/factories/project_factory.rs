@@ -5,12 +5,26 @@ use crate::builders::project_builder::ProjectBuilder;
 use crate::factories::{task_factory::*,tag_factory::*};
 use crate::HasId;
 
+use super::person_factory::sample_person;
+
 /// Basic **Project** with default values
 pub fn basic_project() -> Project {
     ProjectBuilder::new().build()
 }
 
 // region: Factories for Tests
+pub fn sample_project_for_dto() -> Project {
+    ProjectBuilder::new()
+        .with_name("DTO Project")
+        .with_owner_id(Some(sample_person().id()))
+        .with_description("This is a sample DTO project")
+        .with_start_date(Utc::now())
+        .with_due_date(Utc::now()+Duration::days(30))
+        .with_tags(sample_tags_list())
+        .with_children(sample_projects_list())
+        .build()
+}
+
 pub fn sample_project() -> Project {
     ProjectBuilder::new().with_name("This is a sample project title").build()
 }

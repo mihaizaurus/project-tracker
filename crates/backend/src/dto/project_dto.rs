@@ -8,7 +8,7 @@ use project_tracker_core::{
 use serde::{Deserialize, Serialize};
 use core::fmt;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ProjectDTO {
     id: String,
     name: String,
