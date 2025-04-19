@@ -1,13 +1,13 @@
-pub mod health;
-pub mod projects;
-pub mod tasks;
-pub mod tags;
-pub mod people;
+pub mod health_routes;
+pub mod project_routes;
+pub mod task_routes;
+pub mod tag_routes;
+pub mod people_routes;
 
 use axum::Router;
 
 pub fn create_router() -> Router {
     Router::new()
-        .merge(health::routes())
-        .merge(projects::routes())
+        .merge(health_routes::routes())
+        .merge(project_routes::routes())
 }
