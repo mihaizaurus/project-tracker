@@ -41,8 +41,8 @@ impl ProjectBuilder {
         self
     }
 
-    pub fn with_owner_id(mut self, owner_id: Id<Person>) -> Self {
-        self.owner_id = Some(owner_id);
+    pub fn with_owner_id(mut self, owner_id: Option<Id<Person>>) -> Self {
+        self.owner_id = owner_id;
         self
     }
 
@@ -56,7 +56,7 @@ impl ProjectBuilder {
         self
     }
 
-    pub fn with_star_date(mut self, start_date: DateTime<Utc>) -> Self {
+    pub fn with_start_date(mut self, start_date: DateTime<Utc>) -> Self {
         self.start_date = Some(start_date);
         self
     }
