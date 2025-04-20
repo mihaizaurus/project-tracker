@@ -18,8 +18,8 @@ pub fn sample_project_for_dto() -> Project {
         .with_name("DTO Project")
         .with_owner_id(Some(sample_person().id()))
         .with_description("This is a sample DTO project")
-        .with_start_date(Utc::now())
-        .with_due_date(Utc::now()+Duration::days(30))
+        .with_start_date(Some(Utc::now()))
+        .with_due_date(Some(Utc::now()+Duration::days(30)))
         .with_tags(sample_tags_list())
         .with_children(sample_projects_list())
         .build()
@@ -46,7 +46,7 @@ pub fn sample_project_with_tags() -> Project {
 }
 
 pub fn sample_project_with_due_date() -> Project {
-    let due_date = Utc::now() + Duration::days(1);
+    let due_date = Some(Utc::now() + Duration::days(1));
     ProjectBuilder::new().with_due_date(due_date).build()
 }
 

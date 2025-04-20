@@ -1,12 +1,20 @@
-// use std::str::FromStr;
+use std::str::FromStr;
 
-// use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc};
 use project_tracker_core::{
-    models::project::{Project,ProjectStatus,ProjectSubElement},
+    models::{
+        project::{Project,ProjectStatus,ProjectSubElement},
+        person::Person,
+        tag::Tag,
+        task::Task,
+    },
+    builders::project_builder::ProjectBuilder,
+    id::Id,
     HasId
 };
 use serde::{Deserialize, Serialize};
 use core::fmt;
+use crate::{Result,Error};
 
 #[derive(Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ProjectDTO {
@@ -20,6 +28,12 @@ pub struct ProjectDTO {
     children: Vec<ProjectSubElementDTO>,
     dependencies: Vec<String>,
     status: ProjectStatus,
+}
+
+impl ProjectDTO {
+    pub fn id(&self) -> String {
+        self.id.clone()
+    }
 }
 
 impl From<Project> for ProjectDTO {
@@ -93,23 +107,55 @@ impl fmt::Display for ProjectDTO {
     }
 }
 
-// impl TryFrom<ProjectDTO> for Project {
-//     type Error = String; //temporary, should be replaced with better errors.
+impl TryFrom<ProjectDTO> for Project {
+    type Error = Error; //temporary, should be replaced with better errors.
 
-//     fn try_from(dto: ProjectDTO) -> Result<Self, Self::Error> {
-//         Ok(ProjectBuilder::new()
-//             .with_name(&dto.name)
-//             .with_owner_id(dto.owner_id.as_ref().map(|id| Id::from_str(id.as_str())).transpose().unwrap_or(None))
-//             .with_description(dto.description.unwrap_or_default().as_str())
-//             .with_tags(dto.tags.into_iter().map(|id| Id::from_str(id.as_str())).collect::<Result<Vec<_>,_>>().unwrap())
-//             .with_star_date(dto.start_date.map(|d| d.parse::<DateTime<Utc>>()).transpose().unwrap().unwrap())
-//             // .with_due_date(due_date)
-//             // .with_children(children)
-//             // .with_dependencies(dependencies)
-//             .with_status(dto.status)
-//             .build())
-//     }
-// }
+    fn try_from(dto: ProjectDTO) -> Result<Self> {
+        let id = Id::<Project>::from_str(&dto.id)?;
+        let name = &dto.name;
+        let owner_id = match dto.owner_id {
+            Some(ref owner_id_str) => Some(Id::<Person>::from_str(owner_id_str)?),
+            None => None
+        };
+        let description = match &dto.description {
+            Some(desc) => desc,
+            None => ""
+        };
+        let tags: Vec<Id<Tag>> = dto.tags
+            .into_iter()
+            .map(|id| Id::from_str(&id).map_err(|_| Error::ProjectError(format!("Invalid project id: {id:?}"))))
+            .collect::<Result<Vec<_>>>()?;
+        let start_date = match dto.start_date {
+            Some(date_string) => Some(date_string.parse::<DateTime<Utc>>().map_err(|_| Error::ProjectError(format!("Invalid project start date: {date_string:?}")))?),
+            None => None,
+        };
+        let due_date = match dto.due_date {
+            Some(date_string) => Some(date_string.parse::<DateTime<Utc>>().map_err(|_| Error::ProjectError(format!("Invalid project due date: {date_string:?}")))?),
+            None => None,
+        };
+        let children: Vec<ProjectSubElement> = dto.children
+            .into_iter()
+            .map(|child| child.try_into())
+            .collect::<Result<Vec<_>>>()?;
+        let dependencies: Vec<Id<Project>> = dto.dependencies
+            .into_iter()
+            .map(|id| Id::from_str(&id).map_err(|_| Error::ProjectError(format!("Invalid project dependency: {id:?}"))))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(ProjectBuilder::new()
+            .with_id(id)
+            .with_name(name)
+            .with_owner_id(owner_id)
+            .with_description(description)
+            .with_tags(tags)
+            .with_start_date(start_date)
+            .with_due_date(due_date)
+            .with_children(children)
+            .with_dependencies(dependencies)
+            .with_status(dto.status)
+            .build())
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProjectSubElementDTO {
@@ -122,6 +168,17 @@ impl From<ProjectSubElement> for ProjectSubElementDTO {
         match element {
             ProjectSubElement::Project(id) => ProjectSubElementDTO::Project(id.to_string()),
             ProjectSubElement::Task(id) => ProjectSubElementDTO::Task(id.to_string())
+        }
+    }
+}
+
+impl TryFrom<ProjectSubElementDTO> for ProjectSubElement {
+    type Error = Error;
+
+    fn try_from(element: ProjectSubElementDTO) -> Result<Self> {
+        match element {
+            ProjectSubElementDTO::Project(id) => Ok(ProjectSubElement::Project(Id::<Project>::from_str(&id)?)),
+            ProjectSubElementDTO::Task(id) => Ok(ProjectSubElement::Task(Id::<Task>::from_str(&id)?))
         }
     }
 }

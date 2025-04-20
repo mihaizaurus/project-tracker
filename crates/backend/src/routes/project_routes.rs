@@ -1,11 +1,9 @@
-use axum::{Router,routing::get};
+use axum::{routing::{get,post},Router};
 
-use crate::handlers::project_handler;
+use crate::handlers::project_handlers;
 
 pub fn routes() -> Router {
-    Router::new().route("/projects",get(project_handler::list_projects))
-}
-
-async fn projects() -> &'static str {
-    "OK"
+    Router::new()
+        .route("/projects",get(project_handlers::list_projects))
+        .route("/projects",post(project_handlers::post_project))
 }
