@@ -1,6 +1,8 @@
+use chrono::{DateTime,Utc};
+
 use crate::{
     dto::project_dto::ProjectDTO,
-    Result
+    Result, Error
 };
 use project_tracker_core::{
     factories::project_factory::*,
@@ -27,7 +29,21 @@ pub fn create_project(payload: ProjectDTO) -> Result<Project> {
     4. [ ] return success.failure
     */
 
-    let project = Project::try_from(payload)?;
+    let project = validate(Project::try_from(payload)?)?;
 
     Ok(project)
+}
+
+fn validate(project: Project) -> Result<Project> {
+    if has_incorrect_schedule(&project) {
+        // use Error::InvalidPayload
+    }
+    Ok(project)
+}
+
+fn has_incorrect_schedule(project: &Project) -> bool {
+    match (project.start_date(), project.due_date()) {
+        (Some(start_date), Some(due_date)) => due_date < start_date,
+        _ => false
+    }
 }
