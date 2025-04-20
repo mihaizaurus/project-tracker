@@ -21,10 +21,10 @@ pub fn get_all_projects() -> Vec<ProjectDTO> {
 
 pub fn create_project(payload: ProjectDTO) -> Result<Project> {
     /* TODO:
-    1. convert DTO to Project
-    2. validate
-    3. push to DB
-    4. return success.failure
+    1. [x] convert DTO to Project
+    2. [ ] validate
+    3. [ ] push to DB
+    4. [ ] return success.failure
     */
 
     let project = Project::try_from(payload)?;

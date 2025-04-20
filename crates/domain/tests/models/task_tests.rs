@@ -29,7 +29,7 @@ fn create_task_id() {
 #[test]
 fn assign_task_owner() {
     let owner = sample_person();
-    let task = TaskBuilder::new().with_owner_id(owner.id()).build();
+    let task = TaskBuilder::new().with_owner_id(Some(owner.id())).build();
     assert!(task.has_owner());
     assert_eq!(task.owner_id().unwrap().clone(),owner.id());
 }
@@ -155,7 +155,7 @@ fn create_task_with_start_yesterday() {
 
 #[test]
 fn remove_start_date() {
-    let mut task = TaskBuilder::new().with_star_date(Utc::now()).build();
+    let mut task = TaskBuilder::new().with_start_date(Some(Utc::now())).build();
     assert!(task.has_start_date());
     task.remove_start_date();
     assert!(!task.has_start_date());

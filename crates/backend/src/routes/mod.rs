@@ -12,5 +12,6 @@ pub fn create_router() -> Router {
         .nest("/api",
             Router::new() 
                 .merge(project_routes::routes())
+                .merge(task_routes::routes())
         )
 }
