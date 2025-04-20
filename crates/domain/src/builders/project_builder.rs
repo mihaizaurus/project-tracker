@@ -36,6 +36,11 @@ impl ProjectBuilder {
         }
     }
 
+    pub fn with_id(mut self, id: Id<Project>) -> Self {
+        self.id = id;
+        self
+    }
+
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = name.into();
         self
@@ -56,13 +61,13 @@ impl ProjectBuilder {
         self
     }
 
-    pub fn with_start_date(mut self, start_date: DateTime<Utc>) -> Self {
-        self.start_date = Some(start_date);
+    pub fn with_start_date(mut self, start_date: Option<DateTime<Utc>>) -> Self {
+        self.start_date = start_date;
         self
     }
 
-    pub fn with_due_date(mut self, due_date: DateTime<Utc>) -> Self {
-        self.due_date = Some(due_date);
+    pub fn with_due_date(mut self, due_date: Option<DateTime<Utc>>) -> Self {
+        self.due_date = due_date;
         self
     }
 

@@ -157,7 +157,7 @@ fn create_project_with_start_yesterday() {
 
 #[test]
 fn remove_start_date() {
-    let mut project = ProjectBuilder::new().with_start_date(Utc::now()).build();
+    let mut project = ProjectBuilder::new().with_start_date(Some(Utc::now())).build();
     assert!(project.has_start_date());
     project.remove_start_date();
     assert!(!project.has_start_date());

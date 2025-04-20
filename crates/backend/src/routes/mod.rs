@@ -9,5 +9,8 @@ use axum::Router;
 pub fn create_router() -> Router {
     Router::new()
         .merge(health_routes::routes())
-        .merge(project_routes::routes())
+        .nest("/api",
+            Router::new() 
+                .merge(project_routes::routes())
+        )
 }
