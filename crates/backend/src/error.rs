@@ -14,9 +14,10 @@ pub enum Error { // To be improved later
     LoginFail,
     ProjectError(String),
     ParseError(ParseIdError),
-    InvalidPayload,
+    InvalidPayload(String),
     DatabaseError,
     // etc.
+    Multiple(Vec<Error>)
 }
 
 impl std::fmt::Display for Error {
@@ -39,8 +40,9 @@ impl IntoResponse for Error {
             Error::LoginFail => (StatusCode::UNAUTHORIZED, "Login Failed".into()),
             Error::ProjectError(error_string) => (StatusCode::BAD_REQUEST, error_string),
             Error::ParseError(_) => (StatusCode::BAD_REQUEST, "Parsing Error".into()),
-            Error::InvalidPayload => (StatusCode::UNAUTHORIZED, "Invalid Request Payload".into()),
+            Error::InvalidPayload(_) => (StatusCode::UNAUTHORIZED, "Invalid Request Payload".into()),
             Error::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, "Database Error".into()),
+            Error::Multiple(errors) => (StatusCode::BAD_REQUEST, "Multiple validation Errors".into()),
             // fallback
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unhandled Error".into()) // Kept for validation for when more error types are added;
         };
