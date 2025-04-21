@@ -1,12 +1,11 @@
 use chrono::Utc;
-
 use crate::{
     dto::project_dto::ProjectDTO,
     Result, Error
 };
 use project_tracker_core::{
     factories::project_factory::*,
-    models::project::{Project, ProjectStatus}
+    models::project::{Project, ProjectStatus, ProjectSubElement}, HasId
 };
 
 pub fn get_all_projects() -> Vec<ProjectDTO> {
@@ -19,6 +18,16 @@ pub fn get_all_projects() -> Vec<ProjectDTO> {
         ProjectDTO::from(sample_project_for_dto()),
         ProjectDTO::from(sample_project_for_dto()),
     ]
+}
+
+pub fn get_project_from_id(id: String) -> Result<ProjectDTO> {
+    /* TODO:
+    1. [ ] make call to DB
+    2. [ ] return success/failure
+    */
+
+    let project = ProjectDTO::from(basic_project()); //placeholder
+    Ok(project)
 }
 
 pub fn create_project(payload: ProjectDTO) -> Result<Project> {
@@ -38,10 +47,16 @@ fn validate(project: Project) -> Result<Project> {
     let mut errors: Vec<Error> = Vec::new();
 
     if has_incorrect_schedule(&project) {
-        errors.push(Error::InvalidPayload("provided project has incorrect schedule".into()));
+        errors.push(Error::InvalidPayload("Provided project has incorrect schedule".into()));
     }
     if has_inconsistent_status(&project) {
-        errors.push(Error::InvalidPayload("provided project has status inconsistent with provided data".into()));
+        errors.push(Error::InvalidPayload("Provided project has status inconsistent with provided data".into()));
+    }
+    if is_own_parent(&project) {
+        errors.push(Error::InvalidPayload("Provided project cannot be its own parent".into()));
+    }
+    if depends_on_self(&project) {
+        errors.push(Error::InvalidPayload("Provided project cannot be its own dependency".into()));
     }
     // validate provided tags
     // validate provided tasks
@@ -123,4 +138,12 @@ fn is_invalid_completed_project(project: &Project) -> bool {
         },
         _ => true
     }
+}
+
+fn is_own_parent(project: &Project) -> bool {
+    project.children().contains(&ProjectSubElement::Project(project.id()))
+}
+
+fn depends_on_self(project: &Project) -> bool {
+    project.dependencies().contains(&project.id())
 }
