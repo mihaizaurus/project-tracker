@@ -2,6 +2,7 @@ use core::fmt;
 use std::marker::PhantomData;
 
 use ulid::Ulid;
+use serde::Serialize;
 
 use crate::EntityType;
 
@@ -53,7 +54,7 @@ impl<T: EntityType> std::str::FromStr for Id<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum ParseIdError {
     InvalidFormat,
     WrongPrefix,

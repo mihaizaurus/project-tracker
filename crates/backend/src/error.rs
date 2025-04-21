@@ -3,19 +3,21 @@ use axum::{
     response::{IntoResponse, Response},
     Json
 };
+use serde::Serialize;
 use serde_json::json;
 
 use project_tracker_core::id::ParseIdError;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum Error { // To be improved later
     LoginFail,
     ProjectError(String),
     ParseError(ParseIdError),
-    InvalidPayload,
+    InvalidPayload(String),
     DatabaseError,
+    Multiple(Vec<Error>)
     // etc.
 }
 
@@ -39,8 +41,9 @@ impl IntoResponse for Error {
             Error::LoginFail => (StatusCode::UNAUTHORIZED, "Login Failed".into()),
             Error::ProjectError(error_string) => (StatusCode::BAD_REQUEST, error_string),
             Error::ParseError(_) => (StatusCode::BAD_REQUEST, "Parsing Error".into()),
-            Error::InvalidPayload => (StatusCode::UNAUTHORIZED, "Invalid Request Payload".into()),
+            Error::InvalidPayload(error_string) => (StatusCode::UNAUTHORIZED, error_string),
             Error::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, "Database Error".into()),
+            Error::Multiple(_) => (StatusCode::BAD_REQUEST, "Multiple validation Errors".into()),
             // fallback
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unhandled Error".into()) // Kept for validation for when more error types are added;
         };
