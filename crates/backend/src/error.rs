@@ -17,8 +17,8 @@ pub enum Error { // To be improved later
     ParseError(ParseIdError),
     InvalidPayload(String),
     DatabaseError,
-    Multiple(Vec<Error>)
     // etc.
+    Multiple(Vec<Error>)
 }
 
 impl std::fmt::Display for Error {

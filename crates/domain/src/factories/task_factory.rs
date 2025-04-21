@@ -15,6 +15,19 @@ pub fn basic_task() -> Task {
 
 // region: Factories for Tests
 
+pub fn sample_task_for_dto() -> Task {
+    TaskBuilder::new()
+        .with_name("This is a sample task")
+        .with_owner_id(Some(sample_person().id()))
+        .with_description("This is a sample DTO task")
+        .with_start_date(Some(Utc::now()))
+        .with_due_date(Some(Utc::now()+Duration::days(30)))
+        .with_tags(sample_tags_list())
+        .with_children(sample_tasks_list())
+        .with_dependencies(sample_tasks_list())
+        .build()
+}
+
 pub fn sample_task() -> Task {
     TaskBuilder::new().with_name("This is a sample task").with_description("This is a sample task").build()
 }
@@ -28,7 +41,7 @@ pub fn sample_tasks_list() -> Vec<Id<Task>> {
 
 pub fn sample_task_with_owner() -> Task {
     let owner = sample_person();
-    TaskBuilder::new().with_owner_id(owner.id()).build()
+    TaskBuilder::new().with_owner_id(Some(owner.id())).build()
 }
 
 pub fn sample_task_with_tags() -> Task {
@@ -38,7 +51,7 @@ pub fn sample_task_with_tags() -> Task {
 
 pub fn sample_task_with_due_date() -> Task {
     let due_date = Utc::now() + Duration::days(1);
-    TaskBuilder::new().with_due_date(due_date).build()
+    TaskBuilder::new().with_due_date(Some(due_date)).build()
 }
 
 pub fn sample_task_with_children() -> Task {
@@ -79,7 +92,7 @@ pub fn sample_canceled_task() -> Task {
 pub fn sample_scheduled_task() -> Task {
     let start_date = Utc::now() + Duration::days(1);
     let due_date = Utc::now() + Duration::days(1);
-    TaskBuilder::new().with_star_date(start_date).with_due_date(due_date).build()
+    TaskBuilder::new().with_start_date(Some(start_date)).with_due_date(Some(due_date)).build()
 }
 
 // endregion: Factories for Tests

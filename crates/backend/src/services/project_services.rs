@@ -32,10 +32,10 @@ pub fn get_project_from_id(id: String) -> Result<ProjectDTO> {
 
 pub fn create_project(payload: ProjectDTO) -> Result<Project> {
     /* TODO:
-    1. convert DTO to Project
-    2. validate
-    3. push to DB
-    4. return success.failure
+    1. [x] convert DTO to Project
+    2. [ ] validate
+    3. [ ] push to DB
+    4. [ ] return success/failure
     */
 
     let project = validate(Project::try_from(payload)?)?;
