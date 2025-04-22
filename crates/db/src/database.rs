@@ -1,8 +1,10 @@
+use std::fs;
 use surrealdb::{
     Surreal,
     engine::local::{Mem,Db},
-    opt::auth::Root
+    // opt::auth::Root
 };
+use crate::{Result, Error};
 
 pub struct Database {
     client: Surreal<Db>
@@ -13,7 +15,7 @@ impl Database {
         // memory:// for in-memory DB
         let client = Surreal::new::<Mem>(()).await?;
 
-        // client.signin(Root {
+        // client.signin(Root { // Not Relevant for in Mem DB
         //     username: "root",
         //     password: "root",
         // }).await?;
@@ -22,4 +24,9 @@ impl Database {
 
         Ok(Self { client })
     }
+    // pub async fn initialise_schema(&self) -> Result<&Self> {
+    //     let schema = fs::read_to_string("/crates/db/schemas/project.surql").map_err(|_| Error::DatabaseError)?;
+    //     self.client.query(schema).await?;
+    //     Ok(self)
+    // }
 }
