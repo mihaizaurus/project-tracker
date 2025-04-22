@@ -1,4 +1,4 @@
-pub use self::error::{DatabaseError as Error,Result};
+pub use self::error::{DatabaseError,Result};
 
 pub mod database;
 pub mod error;

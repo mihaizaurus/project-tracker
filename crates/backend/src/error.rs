@@ -7,6 +7,7 @@ use serde::Serialize;
 use serde_json::json;
 
 use project_tracker_core::id::ParseIdError;
+use project_tracker_db::DatabaseError;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -16,7 +17,7 @@ pub enum Error { // To be improved later
     ProjectError(String),
     ParseError(ParseIdError),
     InvalidPayload(String),
-    DatabaseError,
+    DatabaseError(DatabaseError),
     // etc.
     Multiple(Vec<Error>)
 }
@@ -35,6 +36,12 @@ impl From<ParseIdError> for Error {
     }
 }
 
+impl From<DatabaseError> for Error {
+    fn from(err: DatabaseError) -> Self {
+        Error::DatabaseError(err)
+    }
+}
+
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
@@ -42,7 +49,7 @@ impl IntoResponse for Error {
             Error::ProjectError(error_string) => (StatusCode::BAD_REQUEST, error_string),
             Error::ParseError(_) => (StatusCode::BAD_REQUEST, "Parsing Error".into()),
             Error::InvalidPayload(error_string) => (StatusCode::UNAUTHORIZED, error_string),
-            Error::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, "Database Error".into()),
+            Error::DatabaseError(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Database Error".into()),
             Error::Multiple(_) => (StatusCode::BAD_REQUEST, "Multiple validation Errors".into()),
             // fallback
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Unhandled Error".into()) // Kept for validation for when more error types are added;

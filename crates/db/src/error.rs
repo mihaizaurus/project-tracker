@@ -5,7 +5,9 @@ pub type Result<T> = core::result::Result<T, DatabaseError>;
 #[derive(Debug, Serialize)]
 pub enum DatabaseError { // To be improved later
     LoginFail,
-    DatabaseError,
+    ConnectionError(String),
+    SchemaError(String),
+    QueryError(String),
     // etc.
     Multiple(Vec<DatabaseError>)
 }
