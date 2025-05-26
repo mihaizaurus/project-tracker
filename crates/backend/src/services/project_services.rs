@@ -1,7 +1,8 @@
 use chrono::Utc;
 use crate::{
     dto::project_dto::ProjectDTO,
-    Result, Error
+    Result, Error,
+    db::traits::ProjectRepository,
 };
 use project_tracker_core::{
     factories::project_factory::*,

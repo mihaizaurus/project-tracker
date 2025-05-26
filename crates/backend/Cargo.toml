@@ -8,6 +8,7 @@ project-tracker-core = { path = "../domain" }
 project-tracker-db = { path = "../db" }
 project-tracker-db-mock = { path = "../db-mock" }
 axum = { version = "0.8.3" }
+async-trait = { version = "0.1.88" }
 chrono = { version = "0.4.40", features = ["serde"] }
 tokio = { version = "1.38", features = ["full"] }
 tower = { version = "0.5.2" }

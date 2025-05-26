@@ -2531,6 +2531,7 @@ dependencies = [
 name = "project-tracker-backend"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "chrono",
  "log",
