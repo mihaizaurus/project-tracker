@@ -2578,8 +2578,12 @@ dependencies = [
 name = "project-tracker-db-mock"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "project-tracker-core",
  "serde",
+ "serde_json",
+ "surrealdb",
+ "tokio",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
-# Windows:
-# set shell := ["powershell.exe","-c"]
+Windows:
+set shell := ["powershell.exe","-c"]
 
 # MacOs
 

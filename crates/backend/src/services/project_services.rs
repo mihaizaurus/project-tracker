@@ -2,7 +2,7 @@ use chrono::Utc;
 use crate::{
     dto::project_dto::ProjectDTO,
     Result, Error,
-    db::traits::ProjectRepository,
+    db::project_repository::ProjectRepository,
 };
 use project_tracker_core::{
     factories::project_factory::*,
