@@ -4,8 +4,6 @@ use project_tracker_core::{
     factories::person_factory::basic_person,
 };
 use anyhow::Result;
-
-use crate::models::ProjectFormState;
 use crate::handlers::project::ProjectHandler;
 use crate::ui::{MainMenu, ProjectForm, ProjectPreview, ProjectOutput, MainMenuAction, ButtonAction};
 

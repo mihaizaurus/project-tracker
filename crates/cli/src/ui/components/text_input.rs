@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, Paragraph},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -92,14 +92,26 @@ impl TextInput {
         if self.is_multiline {
             // Split the text into lines for multiline display
             let wrapped_lines: Vec<&str> = display_value.lines().collect();
-            for line in wrapped_lines {
-                lines.push(Line::from(Span::styled(line, text_style)));
+            
+            // Handle empty multiline input with cursor
+            if wrapped_lines.is_empty() && self.is_focused {
+                lines.push(Line::from(Span::styled("█", text_style)));
+            } else {
+                for (i, line) in wrapped_lines.iter().enumerate() {
+                    let mut line_text = line.to_string();
+                    // Add cursor to the last line if focused
+                    if self.is_focused && i == wrapped_lines.len() - 1 {
+                        line_text.push('█');
+                    }
+                    lines.push(Line::from(Span::styled(line_text, text_style)));
+                }
             }
         } else {
             // Single line with cursor indicator
             let mut display_text = display_value;
             if self.is_focused && !self.is_multiline {
-                display_text.push('|'); // Simple cursor
+                // Use a more visible cursor character that works well across platforms
+                display_text.push('█'); // Block cursor for better visibility
             }
             lines.push(Line::from(Span::styled(display_text, text_style)));
         }

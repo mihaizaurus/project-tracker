@@ -45,18 +45,27 @@ impl ProjectForm {
     pub fn handle_char_input(&mut self, c: char) {
         match self.form_state.current_field {
             FormField::Name => {
-                if self.form_state.name.len() < 100 {
-                    self.form_state.name.push(c);
+                // Name field: only allow printable characters and spaces, no newlines
+                if (!c.is_control() && c.is_ascii_graphic()) || c == ' ' {
+                    if self.form_state.name.len() < 100 {
+                        self.form_state.name.push(c);
+                    }
                 }
             }
             FormField::Description => {
-                if self.form_state.description.len() < 500 {
-                    self.form_state.description.push(c);
+                // Description field: allow printable characters, spaces, and newlines
+                if (!c.is_control() && c.is_ascii_graphic()) || c == ' ' || c == '\n' {
+                    if self.form_state.description.len() < 500 {
+                        self.form_state.description.push(c);
+                    }
                 }
             }
             FormField::Tags => {
-                if self.current_tag_input.len() < 50 {
-                    self.current_tag_input.push(c);
+                // Tags field: only allow printable characters and spaces, no newlines
+                if (!c.is_control() && c.is_ascii_graphic()) || c == ' ' {
+                    if self.current_tag_input.len() < 50 {
+                        self.current_tag_input.push(c);
+                    }
                 }
             }
             FormField::Submit => {
@@ -84,6 +93,12 @@ impl ProjectForm {
 
     pub fn handle_enter(&mut self) {
         match self.form_state.current_field {
+            FormField::Description => {
+                // In description field, Enter adds a newline
+                if self.form_state.description.len() < 500 {
+                    self.form_state.description.push('\n');
+                }
+            }
             FormField::Tags => {
                 if !self.current_tag_input.trim().is_empty() {
                     let tag = self.current_tag_input.trim().to_string();
