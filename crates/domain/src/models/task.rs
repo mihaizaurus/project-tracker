@@ -4,6 +4,7 @@ use crate::models::person::Person;
 use crate::models::tag::Tag;
 use crate::models::project::ProjectStatus;
 use crate::builders::task_builder::TaskBuilder;
+use crate::models::schedulable::Schedulable;
 
 use log::{error, info};
 use core::fmt;
@@ -318,11 +319,11 @@ impl Task {
 
     /* ### Validation Methods */
     pub fn is_valid_dependency(&self, dependency_project_id: &Id<Task>) -> bool {
-        dependency_project_id != &self.id()
+        dependency_project_id != &HasId::id(self)
     }
 
     pub fn is_valid_child(&self, child_to_validate: &Id<Task>) -> bool {
-        &self.id() != child_to_validate
+        &HasId::id(self) != child_to_validate
     }
 
     pub fn is_valid_start_date(&self, start_date: Option<DateTime<Utc>>) -> bool {
@@ -425,5 +426,211 @@ impl HasId for Task {
 
     fn id(&self) -> Id<Task> {
         self.id.clone()
+    }
+}
+
+impl Schedulable for Task {
+    type IdType = Task;
+    type ChildType = Id<Task>;
+    type DependencyType = Id<Task>;
+
+    fn id(&self) -> Id<Self::IdType> {
+        self.id.clone()
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn owner_id(&self) -> Option<&Id<Person>> {
+        self.owner_id.as_ref()
+    }
+
+    fn description(&self) -> &str {
+        if let Some(description) = &self.description {
+            description.as_str()
+        } else {
+            ""
+        }
+    }
+
+    fn has_description(&self) -> bool {
+        self.description.is_some()
+    }
+
+    fn tags(&self) -> Vec<Id<Tag>> {
+        self.tags.clone()
+    }
+
+    fn has_tags(&self) -> bool {
+        !self.tags.is_empty()
+    }
+
+    fn start_date(&self) -> Option<DateTime<Utc>> {
+        self.start_date
+    }
+
+    fn has_start_date(&self) -> bool {
+        self.start_date.is_some()
+    }
+
+    fn due_date(&self) -> Option<DateTime<Utc>> {
+        self.due_date
+    }
+
+    fn has_due_date(&self) -> bool {
+        self.due_date.is_some()
+    }
+
+    fn status(&self) -> ProjectStatus {
+        self.status.clone()
+    }
+
+    fn children(&self) -> Vec<Self::ChildType> {
+        self.children.clone()
+    }
+
+    fn has_children(&self) -> bool {
+        !self.children.is_empty()
+    }
+
+    fn dependencies(&self) -> Vec<Self::DependencyType> {
+        self.dependencies.clone()
+    }
+
+    fn has_dependencies(&self) -> bool {
+        !self.dependencies.is_empty()
+    }
+
+    fn rename(&mut self, name: &str) -> &Self {
+        self.name = name.into();
+        self
+    }
+
+    fn transfer_ownership(&mut self, owner_id: Id<Person>) -> &Self {
+        self.owner_id = Some(owner_id);
+        self
+    }
+
+    fn clear_description(&mut self) -> &Self {
+        self.description = None;
+        self
+    }
+
+    fn add_tag(&mut self, tag_id: Id<Tag>) -> &Self {
+        if self.is_valid_tag(&tag_id) {
+            self.tags.push(tag_id);
+        }
+        self
+    }
+
+    fn add_tags(&mut self, tags: Vec<Id<Tag>>) -> &Self {
+        for tag_id in tags {
+            self.add_tag(tag_id);
+        }
+        self
+    }
+
+    fn remove_tag(&mut self, tag: Id<Tag>) -> &Self {
+        if let Some(index) = self.tags.iter().position(|t| t == &tag) {
+            self.tags.remove(index);
+        }
+        self
+    }
+
+    fn remove_all_tags(&mut self) -> &Self {
+        self.tags.clear();
+        self
+    }
+
+    fn start_now(&mut self) -> &Self {
+        self.start_at_date(Utc::now());
+        self
+    }
+
+    fn start_at_date(&mut self, start_date: DateTime<Utc>) -> &Self {
+        if self.is_valid_start_date(Some(start_date)) {
+            self.start_date = Some(start_date);
+        } else {
+            error!("Provided start date ({}) is invalid.", start_date);
+        }
+        self
+    }
+
+    fn remove_start_date(&mut self) -> &Self {
+        self.start_date = None;
+        self
+    }
+
+    fn set_due_date(&mut self, due_date: DateTime<Utc>) -> &Self {
+        if self.is_valid_due_date(Some(due_date)) {
+            self.due_date = Some(due_date);
+        }
+        self
+    }
+
+    fn remove_due_date(&mut self) -> &Self {
+        self.due_date = None;
+        self
+    }
+
+    fn promote(&mut self) -> &Self {
+        match self.status {
+            ProjectStatus::NotStarted => self.status = ProjectStatus::Planned,
+            ProjectStatus::Planned => self.status = ProjectStatus::InProgress,
+            ProjectStatus::InProgress => self.status = ProjectStatus::InReview,
+            ProjectStatus::InReview => self.status = ProjectStatus::Completed,
+            _ => (),
+        }
+        self
+    }
+
+    fn demote(&mut self) -> &Self {
+        match self.status {
+            ProjectStatus::InReview => self.status = ProjectStatus::InProgress,
+            ProjectStatus::InProgress => self.status = ProjectStatus::Planned,
+            ProjectStatus::Planned => self.status = ProjectStatus::NotStarted,
+            _ => (),
+        }
+        self
+    }
+
+    fn archive(&mut self) -> &Self {
+        if self.status != ProjectStatus::Archived {
+            self.status = ProjectStatus::Archived;
+        }
+        self
+    }
+
+    fn cancel(&mut self) -> &Self {
+        match self.status {
+            ProjectStatus::Archived => {
+                info!("Task is already archived and cannot be canceled");
+            },
+            ProjectStatus::Completed => {
+                info!("Task is already completed and cannot be canceled");
+            },
+            _ => {self.status = ProjectStatus::Canceled;}
+        }
+        self
+    }
+
+    fn is_valid_start_date(&self, start_date: Option<DateTime<Utc>>) -> bool {
+        match (start_date, self.due_date()) {
+            (Some(start), Some(due)) => start <= due,
+            _ => true,
+        }
+    }
+
+    fn is_valid_due_date(&self, due_date: Option<DateTime<Utc>>) -> bool {
+        match (self.start_date(), due_date) {
+            (Some(start), Some(due)) => start <= due,
+            (_, Some(due)) => due >= Utc::now(),
+            _ => true,
+        }
+    }
+
+    fn is_valid_tag(&self, tag_id: &Id<Tag>) -> bool {
+        !self.tags().contains(tag_id)
     }
 }
