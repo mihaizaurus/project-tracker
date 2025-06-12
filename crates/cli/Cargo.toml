@@ -5,4 +5,7 @@ edition = "2024"
 
 [dependencies]
 project-tracker-core = { path = "../domain" }
-clap = { version = "4.5.35" }
+ratatui = "0.28"
+crossterm = "0.28"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
