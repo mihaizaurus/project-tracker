@@ -8,5 +8,5 @@ readme = "README.md"
 [dependencies]
 chrono = { version = "0.4.40", features = ["serde"] }
 ulid = { version = "1.2.1" }
-serde = { version = "1.0.219" }
+serde = { version = "1.0.219", features = ["derive"] }
 log = { version = "0.4.27" }
