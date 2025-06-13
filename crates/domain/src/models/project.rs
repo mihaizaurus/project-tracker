@@ -11,7 +11,7 @@ use core::fmt;
 use chrono::{DateTime, Datelike, Utc};
 use serde::{Serialize, Deserialize};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Project {
     id: Id<Project>,
     name: String,
@@ -466,7 +466,7 @@ impl fmt::Display for Project {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum ProjectStatus {
     NotStarted,
     Planned,
@@ -491,7 +491,7 @@ impl fmt::Display for ProjectStatus {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProjectSubElement {
     Project(Id<Project>),
     Task(Id<Task>)

@@ -2558,6 +2558,8 @@ name = "project-tracker-db"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
+ "log",
  "project-tracker-core",
  "serde",
  "serde_json",

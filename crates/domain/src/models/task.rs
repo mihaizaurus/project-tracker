@@ -9,8 +9,9 @@ use crate::models::schedulable::Schedulable;
 use log::{error, info};
 use core::fmt;
 use chrono::{DateTime, Datelike, Utc};
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Task {
     id: Id<Task>,
     name: String,

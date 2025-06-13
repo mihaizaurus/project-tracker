@@ -26,13 +26,19 @@ impl ProdProjectRepository {
 #[async_trait]
 impl ProjectRepository for ProdProjectRepository {
     async fn create(&self, project: Project) -> Result<()> {
-        // serialize project and insert into db
-        Ok(())
+        use project_tracker_db::project_repository::ProdProjectRepository as DbProjectRepository;
+        use project_tracker_db::project_repository::ProjectRepository as DbProjectRepositoryTrait;
+        
+        let db_repo = DbProjectRepository::new(self.db.clone());
+        db_repo.create(project).await.map_err(Error::DatabaseError)
     }
 
     async fn get_by_id(&self, id: Id<Project>) -> Result<Option<Project>> {
-        // query db for the project by its id
-        Ok(None)
+        use project_tracker_db::project_repository::ProdProjectRepository as DbProjectRepository;
+        use project_tracker_db::project_repository::ProjectRepository as DbProjectRepositoryTrait;
+        
+        let db_repo = DbProjectRepository::new(self.db.clone());
+        db_repo.get_by_id(id).await.map_err(Error::DatabaseError)
     }
 }
 
