@@ -2,11 +2,11 @@ use core::fmt;
 use std::marker::PhantomData;
 
 use ulid::Ulid;
-use serde::Serialize;
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
 use crate::EntityType;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Id<T> {
     ulid: Ulid,
     marker: std::marker::PhantomData<T>
@@ -18,11 +18,6 @@ impl<T: EntityType> fmt::Display for Id<T> {
     }
 }
 
-impl<T: EntityType> fmt::Debug for Id<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}-{}", T::prefix(), self.ulid)
-    }
-}
 
 impl<T: EntityType> Id<T> {
     pub fn new() -> Self {
@@ -59,4 +54,24 @@ pub enum ParseIdError {
     InvalidFormat,
     WrongPrefix,
     InvalidUlid,
+}
+
+impl<T: EntityType> Serialize for Id<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de, T: EntityType> Deserialize<'de> for Id<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse::<Id<T>>()
+            .map_err(|e| serde::de::Error::custom(format!("Invalid ID format: {:?}", e)))
+    }
 }

@@ -1,4 +1,3 @@
-use std::fs;
 use surrealdb::{
     Surreal,
     engine::local::{Mem,Db},
@@ -29,8 +28,19 @@ impl Database {
     }
 
     pub async fn initialise_schema(&self) -> Result<()> {
-        let schema = fs::read_to_string("/crates/db/schemas/project.surql").map_err(|_| DatabaseError::SchemaError("schema file could not be read".into()))?;
-        self.client.query(schema).await.map_err(|_| DatabaseError::QueryError("Database query could not be operated".into()))?;
+        // Fix the hardcoded path - use relative path from the crate root
+        let project_schema = include_str!("../schemas/project.surql");
+        let task_schema = include_str!("../schemas/task.surql");
+        
+        self.client.query(project_schema).await
+            .map_err(|e| DatabaseError::SchemaError(format!("Failed to initialize project schema: {}", e)))?;
+        self.client.query(task_schema).await
+            .map_err(|e| DatabaseError::SchemaError(format!("Failed to initialize task schema: {}", e)))?;
+        
         Ok(())
+    }
+    
+    pub fn client(&self) -> &Surreal<Db> {
+        &self.client
     }
 }

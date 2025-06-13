@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(cargo:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(mkdir:*)",
+      "Bash(RUST_LOG=debug cargo test -p project-tracker-db test_task_hierarchy -- --nocapture)"
     ],
     "deny": []
   }
