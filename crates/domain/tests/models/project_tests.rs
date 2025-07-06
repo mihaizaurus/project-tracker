@@ -1,9 +1,14 @@
-use chrono::{Datelike, Timelike, Utc, Duration};
-use project_tracker_core::HasId;
-use project_tracker_core::models::project::{ProjectStatus,ProjectSubElement};
-use project_tracker_core::builders::project_builder;
-use project_tracker_core::factories::{project_factory::*,task_factory::*,tag_factory::*,person_factory::*};
+use chrono::{Datelike, Duration, Timelike, Utc};
 use project_builder::ProjectBuilder;
+use project_tracker_core::HasId;
+use project_tracker_core::builders::project_builder;
+use project_tracker_core::factories::{
+    person_factory::*, project_factory::*, tag_factory::*, task_factory::*,
+};
+use project_tracker_core::models::{
+    project::{ProjectStatus, ProjectSubElement},
+    schedulable::Schedulable,
+};
 
 #[test]
 fn create_project() {
@@ -16,24 +21,26 @@ fn create_project() {
 fn rename_project() {
     let project_name_new = "This is a different project title";
     let mut project = sample_project();
-    assert_ne!(project.name(),project_name_new);
+    assert_ne!(project.name(), project_name_new);
     project.rename(project_name_new);
-    assert_eq!(project.name(),project_name_new);
+    assert_eq!(project.name(), project_name_new);
 }
 
 #[test]
 fn create_project_id() {
     let project = sample_project();
-    let project_id  = project.id().to_string();
+    let project_id = project.id().to_string();
     assert!(project_id.starts_with("project-"));
 }
 
 #[test]
 fn assign_owner() {
     let owner = sample_person();
-    let project = ProjectBuilder::new().with_owner_id(Some(owner.id())).build();
+    let project = ProjectBuilder::new()
+        .with_owner_id(Some(owner.id()))
+        .build();
     assert!(project.has_owner());
-    assert_eq!(project.owner_id().unwrap().clone(),owner.id());
+    assert_eq!(project.owner_id().unwrap().clone(), owner.id());
 }
 
 #[test]
@@ -42,7 +49,7 @@ fn transfer_ownership() {
     let mut project = sample_project();
     project.transfer_ownership(owner_new.id());
     assert!(project.has_owner());
-    assert_eq!(project.owner_id().unwrap().clone(),owner_new.id());
+    assert_eq!(project.owner_id().unwrap().clone(), owner_new.id());
 }
 
 #[test]
@@ -50,7 +57,7 @@ fn create_project_with_description() {
     let description = "This is a sample description";
     let project = ProjectBuilder::new().with_description(description).build();
     assert!(project.has_description());
-    assert_eq!(project.description(),description);
+    assert_eq!(project.description(), description);
 }
 
 #[test]
@@ -59,7 +66,7 @@ fn clear_project_description() {
     let mut project = ProjectBuilder::new().with_description(description).build();
     project.clear_description();
     assert!(!project.has_description());
-    assert_eq!(project.description(),"");
+    assert_eq!(project.description(), "");
 }
 
 #[test]
@@ -78,7 +85,7 @@ fn add_multiple_tags() {
     project.add_tags(test_tags.clone());
     assert!(project.has_tags());
     for tag in test_tags {
-        assert!(project.tags().contains(&tag.clone())); 
+        assert!(project.tags().contains(&tag.clone()));
     }
 }
 
@@ -108,12 +115,12 @@ fn remove_multiple_tags() {
     let test_tags_to_remove = vec![test_tag_1.id(), test_tag_2.id()];
     let mut project = ProjectBuilder::new().with_tags(test_tags.clone()).build();
     for tag in test_tags {
-        assert!(project.tags().contains(&tag.clone())); 
+        assert!(project.tags().contains(&tag.clone()));
     }
     project.remove_tags(test_tags_to_remove.clone());
     assert!(project.has_tags());
     for tag in test_tags_to_remove {
-        assert!(!project.tags().contains(&tag.clone())); 
+        assert!(!project.tags().contains(&tag.clone()));
     }
     assert!(project.tags().contains(&test_tag_3.id().clone()));
 }
@@ -122,13 +129,13 @@ fn remove_multiple_tags() {
 fn create_project_with_start_now() {
     let now = Utc::now();
     let mut project = ProjectBuilder::new().build();
-    project.start_now();
+    project.start();
     assert!(project.has_start_date());
-    assert_eq!(now.year(),project.start_date().unwrap().year());
-    assert_eq!(now.month(),project.start_date().unwrap().month());
-    assert_eq!(now.day(),project.start_date().unwrap().day());
-    assert_eq!(now.hour(),project.start_date().unwrap().hour());
-    assert_eq!(now.minute(),project.start_date().unwrap().minute());
+    assert_eq!(now.year(), project.start_date().unwrap().year());
+    assert_eq!(now.month(), project.start_date().unwrap().month());
+    assert_eq!(now.day(), project.start_date().unwrap().day());
+    assert_eq!(now.hour(), project.start_date().unwrap().hour());
+    assert_eq!(now.minute(), project.start_date().unwrap().minute());
 }
 
 #[test]
@@ -138,9 +145,9 @@ fn create_project_with_start_tomorrow() {
     let mut project = ProjectBuilder::new().build();
     project.start_at_date(tomorrow);
     assert!(project.has_start_date());
-    assert_eq!(tomorrow.year(),project.start_date().unwrap().year());
-    assert_eq!(tomorrow.month(),project.start_date().unwrap().month());
-    assert_eq!(tomorrow.day(),project.start_date().unwrap().day());
+    assert_eq!(tomorrow.year(), project.start_date().unwrap().year());
+    assert_eq!(tomorrow.month(), project.start_date().unwrap().month());
+    assert_eq!(tomorrow.day(), project.start_date().unwrap().day());
 }
 
 #[test]
@@ -150,14 +157,16 @@ fn create_project_with_start_yesterday() {
     let mut project = ProjectBuilder::new().build();
     project.start_at_date(yesterday);
     assert!(project.has_start_date());
-    assert_eq!(yesterday.year(),project.start_date().unwrap().year());
-    assert_eq!(yesterday.month(),project.start_date().unwrap().month());
-    assert_eq!(yesterday.day(),project.start_date().unwrap().day());
+    assert_eq!(yesterday.year(), project.start_date().unwrap().year());
+    assert_eq!(yesterday.month(), project.start_date().unwrap().month());
+    assert_eq!(yesterday.day(), project.start_date().unwrap().day());
 }
 
 #[test]
 fn remove_start_date() {
-    let mut project = ProjectBuilder::new().with_start_date(Some(Utc::now())).build();
+    let mut project = ProjectBuilder::new()
+        .with_start_date(Some(Utc::now()))
+        .build();
     assert!(project.has_start_date());
     project.remove_start_date();
     assert!(!project.has_start_date());
@@ -171,9 +180,9 @@ fn set_due_date_tomorrow() {
     assert!(!project.has_due_date());
     project.set_due_date(due_date);
     assert!(project.has_due_date());
-    assert_eq!(due_date.year(),project.due_date().unwrap().year());
-    assert_eq!(due_date.month(),project.due_date().unwrap().month());
-    assert_eq!(due_date.day(),project.due_date().unwrap().day());
+    assert_eq!(due_date.year(), project.due_date().unwrap().year());
+    assert_eq!(due_date.month(), project.due_date().unwrap().month());
+    assert_eq!(due_date.day(), project.due_date().unwrap().day());
 }
 
 #[test]
@@ -345,7 +354,7 @@ fn add_multiple_child_projects_to_project() {
     let children = vec![
         ProjectSubElement::Project(sample_project().id()),
         ProjectSubElement::Project(sample_project().id()),
-        ProjectSubElement::Project(sample_project().id())
+        ProjectSubElement::Project(sample_project().id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
@@ -361,7 +370,7 @@ fn remove_child_project_from_project() {
     let children = vec![
         ProjectSubElement::Project(sample_project().id()),
         ProjectSubElement::Project(child_project_2.id()),
-        ProjectSubElement::Project(sample_project().id())
+        ProjectSubElement::Project(sample_project().id()),
     ];
     project.add_children(children);
     project.remove_child(ProjectSubElement::Project(child_project_2.id()));
@@ -377,11 +386,11 @@ fn remove_multiple_child_projects_from_project() {
     let children = vec![
         ProjectSubElement::Project(child_project_1.id()),
         ProjectSubElement::Project(child_project_2.id()),
-        ProjectSubElement::Project(child_project_3.id())
+        ProjectSubElement::Project(child_project_3.id()),
     ];
     let children_to_remove = vec![
         ProjectSubElement::Project(child_project_1.id()),
-        ProjectSubElement::Project(child_project_3.id())
+        ProjectSubElement::Project(child_project_3.id()),
     ];
     project.add_children(children);
     project.remove_children(children_to_remove);
@@ -412,7 +421,7 @@ fn add_multiple_child_tasks_to_project() {
     let children = vec![
         ProjectSubElement::Task(child_task_1.id()),
         ProjectSubElement::Task(child_task_2.id()),
-        ProjectSubElement::Task(child_task_3.id())
+        ProjectSubElement::Task(child_task_3.id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
@@ -430,7 +439,7 @@ fn remove_child_task_from_project() {
     let children = vec![
         ProjectSubElement::Task(child_task_1.id()),
         ProjectSubElement::Task(child_task_2.id()),
-        ProjectSubElement::Task(child_task_3.id())
+        ProjectSubElement::Task(child_task_3.id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
@@ -453,11 +462,11 @@ fn remove_multiple_child_tasks_from_project() {
     let children = vec![
         ProjectSubElement::Task(child_task_1.id()),
         ProjectSubElement::Task(child_task_2.id()),
-        ProjectSubElement::Task(child_task_3.id())
+        ProjectSubElement::Task(child_task_3.id()),
     ];
     let children_to_remove = vec![
         ProjectSubElement::Task(child_task_1.id()),
-        ProjectSubElement::Task(child_task_3.id())
+        ProjectSubElement::Task(child_task_3.id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
@@ -487,7 +496,7 @@ fn add_mixed_children_to_project() {
         ProjectSubElement::Project(child_project_3.id()),
         ProjectSubElement::Task(child_task_1.id()),
         ProjectSubElement::Task(child_task_2.id()),
-        ProjectSubElement::Task(child_task_3.id())
+        ProjectSubElement::Task(child_task_3.id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
@@ -527,12 +536,9 @@ fn add_dependencies() {
     let mut project = sample_project();
     let dependency_1 = sample_project();
     let dependency_2 = sample_project();
-    project.add_dependencies(vec![
-        dependency_1.id(),
-        dependency_2.id()
-    ]);
+    project.add_dependencies(vec![dependency_1.id(), dependency_2.id()]);
     assert!(project.has_dependencies());
-    assert_eq!(project.dependencies().len(),2);
+    assert_eq!(project.dependencies().len(), 2);
 }
 
 #[test]
@@ -544,15 +550,12 @@ fn remove_dependencies() {
     project.add_dependencies(vec![
         dependency_1.id(),
         dependency_2.id(),
-        dependency_3.id()
+        dependency_3.id(),
     ]);
-    project.remove_dependencies(vec![
-        dependency_1.id(),
-        dependency_2.id(),
-    ]);
+    project.remove_dependencies(vec![dependency_1.id(), dependency_2.id()]);
     assert!(project.has_dependencies());
     assert!(project.has_dependency(&dependency_3.id()));
-    assert_eq!(project.dependencies().len(),1);
+    assert_eq!(project.dependencies().len(), 1);
 }
 
 #[test]
