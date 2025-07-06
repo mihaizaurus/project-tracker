@@ -1,7 +1,7 @@
-use core::fmt;
-use crate::id::Id;
-use crate::{EntityType,HasId};
 use crate::builders::person_builder::PersonBuilder;
+use crate::id::Id;
+use crate::{EntityType, HasId};
+use core::fmt;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Person {
@@ -12,15 +12,15 @@ pub struct Person {
 
 impl Person {
     pub fn from_builder(builder: PersonBuilder) -> Self {
-        Person { 
-            id: builder.id(), 
-            first_name: builder.first_name(), 
-            last_name: builder.last_name() 
+        Person {
+            id: builder.id(),
+            first_name: builder.first_name(),
+            last_name: builder.last_name(),
         }
     }
 
     pub fn has_first_name(&self) -> bool {
-        self.first_name != ""
+        !self.first_name.is_empty()
     }
 
     pub fn first_name(&self) -> &str {
@@ -33,7 +33,7 @@ impl Person {
     }
 
     pub fn has_last_name(&self) -> bool {
-        self.last_name != ""
+        !self.last_name.is_empty()
     }
 
     pub fn last_name(&self) -> &str {
@@ -77,4 +77,3 @@ impl HasId for Person {
         self.id.clone()
     }
 }
-

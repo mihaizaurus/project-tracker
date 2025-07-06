@@ -1,13 +1,15 @@
-
-use chrono::{Datelike, Timelike, Utc, Duration};
+use chrono::{Datelike, Duration, Timelike, Utc};
 use project_tracker_core::HasId;
 use project_tracker_core::builders::task_builder::*;
-use project_tracker_core::factories::{task_factory::*,tag_factory::*,person_factory::*};
-use project_tracker_core::models::project::ProjectStatus;
+use project_tracker_core::factories::{person_factory::*, tag_factory::*, task_factory::*};
+use project_tracker_core::models::project::ProjectSubElement;
+use project_tracker_core::models::{project::ProjectStatus, schedulable::Schedulable};
 
 #[test]
 fn create_task() {
-    let task = TaskBuilder::new().with_name("This is a sample project title").build();
+    let task = TaskBuilder::new()
+        .with_name("This is a sample project title")
+        .build();
     assert_eq!(task.name(), "This is a sample project title");
 }
 
@@ -31,7 +33,7 @@ fn assign_task_owner() {
     let owner = sample_person();
     let task = TaskBuilder::new().with_owner_id(Some(owner.id())).build();
     assert!(task.has_owner());
-    assert_eq!(task.owner_id().unwrap().clone(),owner.id());
+    assert_eq!(task.owner_id().unwrap().clone(), owner.id());
 }
 
 #[test]
@@ -40,7 +42,7 @@ fn transfer_task_ownership() {
     let mut task = sample_task();
     task.transfer_ownership(owner_new.id());
     assert!(task.has_owner());
-    assert_eq!(task.owner_id().unwrap().clone(),owner_new.id());
+    assert_eq!(task.owner_id().unwrap().clone(), owner_new.id());
 }
 
 #[test]
@@ -48,7 +50,7 @@ fn create_task_with_description() {
     let description = "This is a sample description";
     let task = TaskBuilder::new().with_description(description).build();
     assert!(task.has_description());
-    assert_eq!(task.description(),description);
+    assert_eq!(task.description(), description);
 }
 
 #[test]
@@ -57,7 +59,7 @@ fn clear_task_description() {
     let mut task = TaskBuilder::new().with_description(description).build();
     task.clear_description();
     assert!(!task.has_description());
-    assert_eq!(task.description(),"");
+    assert_eq!(task.description(), "");
 }
 
 #[test]
@@ -76,7 +78,7 @@ fn add_multiple_tags() {
     task.add_tags(test_tags.clone());
     assert!(task.has_tags());
     for tag in test_tags {
-        assert!(task.tags().contains(&tag.clone())); 
+        assert!(task.tags().contains(&tag.clone()));
     }
 }
 
@@ -106,27 +108,27 @@ fn remove_multiple_tags() {
     let test_tags_to_remove = vec![test_tag_1.id(), test_tag_2.id()];
     let mut task = TaskBuilder::new().with_tags(test_tags.clone()).build();
     for tag in test_tags {
-        assert!(task.tags().contains(&tag.clone())); 
+        assert!(task.tags().contains(&tag.clone()));
     }
     task.remove_tags(test_tags_to_remove.clone());
     assert!(task.has_tags());
     for tag in test_tags_to_remove {
-        assert!(!task.tags().contains(&tag.clone())); 
+        assert!(!task.tags().contains(&tag.clone()));
     }
     assert!(task.tags().contains(&test_tag_3.id().clone()));
 }
 
 #[test]
-fn create_task_with_start_now() {
+fn create_task_with_start() {
     let now = Utc::now();
     let mut task = TaskBuilder::new().build();
-    task.start_now();
+    task.start();
     assert!(task.has_start_date());
-    assert_eq!(now.year(),task.start_date().unwrap().year());
-    assert_eq!(now.month(),task.start_date().unwrap().month());
-    assert_eq!(now.day(),task.start_date().unwrap().day());
-    assert_eq!(now.hour(),task.start_date().unwrap().hour());
-    assert_eq!(now.minute(),task.start_date().unwrap().minute());
+    assert_eq!(now.year(), task.start_date().unwrap().year());
+    assert_eq!(now.month(), task.start_date().unwrap().month());
+    assert_eq!(now.day(), task.start_date().unwrap().day());
+    assert_eq!(now.hour(), task.start_date().unwrap().hour());
+    assert_eq!(now.minute(), task.start_date().unwrap().minute());
 }
 
 #[test]
@@ -136,9 +138,9 @@ fn create_task_with_start_tomorrow() {
     let mut task = TaskBuilder::new().build();
     task.start_at_date(tomorrow);
     assert!(task.has_start_date());
-    assert_eq!(tomorrow.year(),task.start_date().unwrap().year());
-    assert_eq!(tomorrow.month(),task.start_date().unwrap().month());
-    assert_eq!(tomorrow.day(),task.start_date().unwrap().day());
+    assert_eq!(tomorrow.year(), task.start_date().unwrap().year());
+    assert_eq!(tomorrow.month(), task.start_date().unwrap().month());
+    assert_eq!(tomorrow.day(), task.start_date().unwrap().day());
 }
 
 #[test]
@@ -148,9 +150,9 @@ fn create_task_with_start_yesterday() {
     let mut task = TaskBuilder::new().build();
     task.start_at_date(yesterday);
     assert!(task.has_start_date());
-    assert_eq!(yesterday.year(),task.start_date().unwrap().year());
-    assert_eq!(yesterday.month(),task.start_date().unwrap().month());
-    assert_eq!(yesterday.day(),task.start_date().unwrap().day());
+    assert_eq!(yesterday.year(), task.start_date().unwrap().year());
+    assert_eq!(yesterday.month(), task.start_date().unwrap().month());
+    assert_eq!(yesterday.day(), task.start_date().unwrap().day());
 }
 
 #[test]
@@ -169,9 +171,9 @@ fn set_due_date_tomorrow() {
     assert!(!task.has_due_date());
     task.set_due_date(due_date);
     assert!(task.has_due_date());
-    assert_eq!(due_date.year(),task.due_date().unwrap().year());
-    assert_eq!(due_date.month(),task.due_date().unwrap().month());
-    assert_eq!(due_date.day(),task.due_date().unwrap().day());
+    assert_eq!(due_date.year(), task.due_date().unwrap().year());
+    assert_eq!(due_date.month(), task.due_date().unwrap().month());
+    assert_eq!(due_date.day(), task.due_date().unwrap().day());
 }
 
 #[test]
@@ -328,8 +330,8 @@ fn demote_from_canceled() {
 #[test]
 fn add_child_task() {
     let mut task = sample_task();
-    let child_task = sample_task();
-    task.add_child(child_task.id());
+    let child_task = ProjectSubElement::Task(sample_task().id());
+    task.add_child(child_task);
     assert!(task.has_children());
     assert!(task.children().len() == 1);
 }
@@ -337,14 +339,10 @@ fn add_child_task() {
 #[test]
 fn add_multiple_child_tasks() {
     let mut task = sample_task();
-    let child_task_1 = sample_task();
-    let child_task_2 = sample_task();
-    let child_task_3 = sample_task();
-    let children = vec![
-        child_task_1.id(),
-        child_task_2.id(),
-        child_task_3.id()
-    ];
+    let child_task_1 = ProjectSubElement::Task(sample_task().id());
+    let child_task_2 = ProjectSubElement::Task(sample_task().id());
+    let child_task_3 = ProjectSubElement::Task(sample_task().id());
+    let children = vec![child_task_1, child_task_2, child_task_3];
     task.add_children(children);
     assert!(task.has_children());
     assert!(task.children().len() == 3);
@@ -353,18 +351,14 @@ fn add_multiple_child_tasks() {
 #[test]
 fn remove_child_task() {
     let mut task = sample_task();
-    let child_task_1 = sample_task();
-    let child_task_2 = sample_task();
-    let child_task_3 = sample_task();
-    let children = vec![
-        child_task_1.id(),
-        child_task_2.id(),
-        child_task_3.id()
-    ];
+    let child_task_1 = ProjectSubElement::Task(sample_task().id());
+    let child_task_2 = ProjectSubElement::Task(sample_task().id());
+    let child_task_3 = ProjectSubElement::Task(sample_task().id());
+    let children = vec![child_task_1, child_task_2.clone(), child_task_3];
     task.add_children(children);
     assert!(task.has_children());
     assert!(task.children().len() == 3);
-    task.remove_child(child_task_2.id());
+    task.remove_child(child_task_2);
     assert!(task.has_children());
     assert!(task.children().len() == 2);
 }
@@ -372,25 +366,24 @@ fn remove_child_task() {
 #[test]
 fn remove_multiple_child_tasks() {
     let mut task = sample_task();
-    let child_task_1 = sample_task();
-    let child_task_2 = sample_task();
-    let child_task_3 = sample_task();
+    let child_task_1 = ProjectSubElement::Task(sample_task().id());
+    let child_task_2 = ProjectSubElement::Task(sample_task().id());
+    let child_task_3 = ProjectSubElement::Task(sample_task().id());
     let children = vec![
-        child_task_1.id(),
-        child_task_2.id(),
-        child_task_3.id()
+        child_task_1.clone(),
+        child_task_2.clone(),
+        child_task_3.clone(),
     ];
-    let children_to_remove = vec![
-        child_task_1.id(),
-        child_task_3.id()
-    ];
+    let children_to_remove = vec![child_task_1, child_task_3];
     task.add_children(children);
     assert!(task.has_children());
     assert!(task.children().len() == 3);
     task.remove_children(children_to_remove);
     assert!(task.has_children());
     assert!(task.children().len() == 1);
-    assert!(task.children().contains(&child_task_2.id().clone()));
+    if let ProjectSubElement::Task(task_id) = child_task_2 {
+        assert!(task.children().contains(&task_id));
+    }
 }
 
 #[test]
@@ -424,12 +417,9 @@ fn add_dependencies() {
     let mut task = sample_task();
     let dependency_1 = sample_task();
     let dependency_2 = sample_task();
-    task.add_dependencies(vec![
-        dependency_1.id(),
-        dependency_2.id()
-    ]);
+    task.add_dependencies(vec![dependency_1.id(), dependency_2.id()]);
     assert!(task.has_dependencies());
-    assert_eq!(task.dependencies().len(),2);
+    assert_eq!(task.dependencies().len(), 2);
 }
 
 #[test]
@@ -441,15 +431,12 @@ fn remove_dependencies() {
     task.add_dependencies(vec![
         dependency_1.id(),
         dependency_2.id(),
-        dependency_3.id()
+        dependency_3.id(),
     ]);
-    task.remove_dependencies(vec![
-        dependency_1.id(),
-        dependency_2.id(),
-    ]);
+    task.remove_dependencies(vec![dependency_1.id(), dependency_2.id()]);
     assert!(task.has_dependencies());
     assert!(task.has_dependency(&dependency_3.id()));
-    assert_eq!(task.dependencies().len(),1);
+    assert_eq!(task.dependencies().len(), 1);
 }
 
 #[test]
