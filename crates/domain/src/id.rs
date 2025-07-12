@@ -1,15 +1,15 @@
 use core::fmt;
 use std::marker::PhantomData;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use ulid::Ulid;
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
 use crate::EntityType;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Id<T> {
     ulid: Ulid,
-    marker: std::marker::PhantomData<T>
+    marker: std::marker::PhantomData<T>,
 }
 
 impl<T: EntityType> fmt::Display for Id<T> {
@@ -18,13 +18,18 @@ impl<T: EntityType> fmt::Display for Id<T> {
     }
 }
 
-
 impl<T: EntityType> Id<T> {
     pub fn new() -> Self {
         Self {
             ulid: Ulid::new(),
-            marker: std::marker::PhantomData
+            marker: std::marker::PhantomData,
         }
+    }
+}
+
+impl<T: EntityType> Default for Id<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -37,14 +42,16 @@ impl<T: EntityType> std::str::FromStr for Id<T> {
         let ulid_part = string_parts[1];
 
         if prefix != T::prefix() {
-            return Err(ParseIdError::WrongPrefix)
+            return Err(ParseIdError::WrongPrefix);
         }
 
-        let ulid = ulid_part.parse::<Ulid>().map_err(|_| ParseIdError::InvalidUlid)?;
+        let ulid = ulid_part
+            .parse::<Ulid>()
+            .map_err(|_| ParseIdError::InvalidUlid)?;
 
         Ok(Id {
             ulid,
-            marker: PhantomData
+            marker: PhantomData,
         })
     }
 }
@@ -72,6 +79,7 @@ impl<'de, T: EntityType> Deserialize<'de> for Id<T> {
     {
         let s = String::deserialize(deserializer)?;
         s.parse::<Id<T>>()
-            .map_err(|e| serde::de::Error::custom(format!("Invalid ID format: {:?}", e)))
+            .map_err(|e| serde::de::Error::custom(format!("Invalid ID format: {e:?}")))
     }
 }
+
