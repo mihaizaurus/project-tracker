@@ -11,6 +11,22 @@ use core::fmt;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
+pub type Result<T> = core::result::Result<T, Error>;
+pub enum Error {
+    MissingFields {
+        fields: Vec<String>,
+    },
+    InvalidSchedule {
+        start_date: Option<DateTime<Utc>>,
+        due_date: Option<DateTime<Utc>>,
+        reason: String,
+    },
+    InvalidDependency {
+        id: Id<Project>,
+        reason: String,
+    },
+}
+
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Project {
     id: Id<Project>,
