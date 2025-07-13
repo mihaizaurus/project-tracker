@@ -2,8 +2,9 @@ use chrono::{Datelike, Duration, Timelike, Utc};
 use project_tracker_core::HasId;
 use project_tracker_core::builders::task_builder::*;
 use project_tracker_core::factories::{person_factory::*, tag_factory::*, task_factory::*};
-use project_tracker_core::models::project::ProjectSubElement;
-use project_tracker_core::models::{project::ProjectStatus, schedulable::Schedulable};
+use project_tracker_core::models::schedulable::{
+    Schedulable, SchedulableItem, SchedulableItemStatus,
+};
 
 #[test]
 fn create_task() {
@@ -199,138 +200,138 @@ fn remove_due_date() {
 fn promote_from_not_started() {
     let mut task = sample_task();
     task.promote();
-    assert!(task.status() == ProjectStatus::Planned);
+    assert!(task.status() == SchedulableItemStatus::Planned);
 }
 #[test]
 fn demote_from_not_started() {
     let mut task = sample_task();
     task.demote();
-    assert!(task.status() == ProjectStatus::NotStarted);
+    assert!(task.status() == SchedulableItemStatus::NotStarted);
 }
 
 #[test]
 fn promote_from_planned() {
     let mut task = sample_planned_task();
     task.promote();
-    assert!(task.status() == ProjectStatus::InProgress);
+    assert!(task.status() == SchedulableItemStatus::InProgress);
 }
 
 #[test]
 fn demote_from_planned() {
     let mut task = sample_planned_task();
     task.demote();
-    assert!(task.status() == ProjectStatus::NotStarted);
+    assert!(task.status() == SchedulableItemStatus::NotStarted);
 }
 
 #[test]
 fn promote_from_in_progress() {
     let mut task = sample_in_progress_task();
     task.promote();
-    assert!(task.status() == ProjectStatus::InReview);
+    assert!(task.status() == SchedulableItemStatus::InReview);
 }
 #[test]
 fn demote_from_in_progress() {
     let mut task = sample_in_progress_task();
     task.demote();
-    assert!(task.status() == ProjectStatus::Planned);
+    assert!(task.status() == SchedulableItemStatus::Planned);
 }
 
 #[test]
 fn promote_from_in_review() {
     let mut task = sample_in_review_task();
     task.promote();
-    assert!(task.status() == ProjectStatus::Completed);
+    assert!(task.status() == SchedulableItemStatus::Completed);
 }
 
 #[test]
 fn demote_from_in_review() {
     let mut task = sample_in_review_task();
     task.demote();
-    assert!(task.status() == ProjectStatus::InProgress);
+    assert!(task.status() == SchedulableItemStatus::InProgress);
 }
 
 #[test]
 fn promote_from_completed() {
     let mut task = sample_completed_task();
     task.promote();
-    assert!(task.status() == ProjectStatus::Completed);
+    assert!(task.status() == SchedulableItemStatus::Completed);
 }
 
 #[test]
 fn demote_from_completed() {
     let mut task = sample_completed_task();
     task.demote();
-    assert!(task.status() == ProjectStatus::Completed);
+    assert!(task.status() == SchedulableItemStatus::Completed);
 }
 
 #[test]
 fn archive() {
     let mut task = sample_task();
     task.archive();
-    assert!(task.status() == ProjectStatus::Archived);
+    assert!(task.status() == SchedulableItemStatus::Archived);
     let mut task = sample_planned_task();
     task.archive();
-    assert!(task.status() == ProjectStatus::Archived);
+    assert!(task.status() == SchedulableItemStatus::Archived);
     let mut task = sample_in_progress_task();
     task.archive();
-    assert!(task.status() == ProjectStatus::Archived);
+    assert!(task.status() == SchedulableItemStatus::Archived);
     let mut task = sample_in_review_task();
     task.archive();
-    assert!(task.status() == ProjectStatus::Archived);
+    assert!(task.status() == SchedulableItemStatus::Archived);
     let mut task = sample_completed_task();
     task.archive();
-    assert!(task.status() == ProjectStatus::Archived);
+    assert!(task.status() == SchedulableItemStatus::Archived);
     let mut task = sample_canceled_task();
     task.archive();
-    assert!(task.status() == ProjectStatus::Archived);
+    assert!(task.status() == SchedulableItemStatus::Archived);
 }
 
 #[test]
 fn promote_from_archived() {
     let mut task = sample_archived_task();
     task.promote();
-    assert!(task.status() == ProjectStatus::Archived); // Archive can't be promoted beyond
+    assert!(task.status() == SchedulableItemStatus::Archived); // Archive can't be promoted beyond
 }
 
 #[test]
 fn demote_from_archived() {
     let mut task = sample_archived_task();
     task.demote();
-    assert!(task.status() == ProjectStatus::Archived);
+    assert!(task.status() == SchedulableItemStatus::Archived);
 }
 
 #[test]
 fn cancel() {
     let mut task = sample_task();
     task.cancel();
-    assert!(task.status() == ProjectStatus::Canceled);
+    assert!(task.status() == SchedulableItemStatus::Canceled);
 }
 
 #[test]
 fn cancel_archived_project() {
     let mut task = sample_archived_task();
     task.cancel();
-    assert!(task.status() == ProjectStatus::Archived);
+    assert!(task.status() == SchedulableItemStatus::Archived);
 }
 
 #[test]
 fn promote_from_canceled() {
     let mut task = sample_canceled_task();
     task.promote();
-    assert!(task.status() == ProjectStatus::Canceled);
+    assert!(task.status() == SchedulableItemStatus::Canceled);
 }
 
 #[test]
 fn demote_from_canceled() {
     let mut task = sample_canceled_task();
     task.demote();
-    assert!(task.status() == ProjectStatus::Canceled);
+    assert!(task.status() == SchedulableItemStatus::Canceled);
 }
 
 #[test]
 fn add_child_task() {
     let mut task = sample_task();
-    let child_task = ProjectSubElement::Task(sample_task().id());
+    let child_task = SchedulableItem::Task(sample_task().id());
     task.add_child(child_task);
     assert!(task.has_children());
     assert!(task.children().len() == 1);
@@ -339,9 +340,9 @@ fn add_child_task() {
 #[test]
 fn add_multiple_child_tasks() {
     let mut task = sample_task();
-    let child_task_1 = ProjectSubElement::Task(sample_task().id());
-    let child_task_2 = ProjectSubElement::Task(sample_task().id());
-    let child_task_3 = ProjectSubElement::Task(sample_task().id());
+    let child_task_1 = SchedulableItem::Task(sample_task().id());
+    let child_task_2 = SchedulableItem::Task(sample_task().id());
+    let child_task_3 = SchedulableItem::Task(sample_task().id());
     let children = vec![child_task_1, child_task_2, child_task_3];
     task.add_children(children);
     assert!(task.has_children());
@@ -351,9 +352,9 @@ fn add_multiple_child_tasks() {
 #[test]
 fn remove_child_task() {
     let mut task = sample_task();
-    let child_task_1 = ProjectSubElement::Task(sample_task().id());
-    let child_task_2 = ProjectSubElement::Task(sample_task().id());
-    let child_task_3 = ProjectSubElement::Task(sample_task().id());
+    let child_task_1 = SchedulableItem::Task(sample_task().id());
+    let child_task_2 = SchedulableItem::Task(sample_task().id());
+    let child_task_3 = SchedulableItem::Task(sample_task().id());
     let children = vec![child_task_1, child_task_2.clone(), child_task_3];
     task.add_children(children);
     assert!(task.has_children());
@@ -366,9 +367,9 @@ fn remove_child_task() {
 #[test]
 fn remove_multiple_child_tasks() {
     let mut task = sample_task();
-    let child_task_1 = ProjectSubElement::Task(sample_task().id());
-    let child_task_2 = ProjectSubElement::Task(sample_task().id());
-    let child_task_3 = ProjectSubElement::Task(sample_task().id());
+    let child_task_1 = SchedulableItem::Task(sample_task().id());
+    let child_task_2 = SchedulableItem::Task(sample_task().id());
+    let child_task_3 = SchedulableItem::Task(sample_task().id());
     let children = vec![
         child_task_1.clone(),
         child_task_2.clone(),
@@ -381,7 +382,7 @@ fn remove_multiple_child_tasks() {
     task.remove_children(children_to_remove);
     assert!(task.has_children());
     assert!(task.children().len() == 1);
-    if let ProjectSubElement::Task(task_id) = child_task_2 {
+    if let SchedulableItem::Task(task_id) = child_task_2 {
         assert!(task.children().contains(&task_id));
     }
 }

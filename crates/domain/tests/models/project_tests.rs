@@ -5,9 +5,8 @@ use project_tracker_core::builders::project_builder;
 use project_tracker_core::factories::{
     person_factory::*, project_factory::*, tag_factory::*, task_factory::*,
 };
-use project_tracker_core::models::{
-    project::{ProjectStatus, ProjectSubElement},
-    schedulable::Schedulable,
+use project_tracker_core::models::schedulable::{
+    Schedulable, SchedulableItem, SchedulableItemStatus,
 };
 
 #[test]
@@ -208,132 +207,132 @@ fn remove_due_date() {
 fn promote_from_not_started() {
     let mut project = sample_project();
     project.promote();
-    assert!(project.status() == ProjectStatus::Planned);
+    assert!(project.status() == SchedulableItemStatus::Planned);
 }
 #[test]
 fn demote_from_not_started() {
     let mut project = sample_project();
     project.demote();
-    assert!(project.status() == ProjectStatus::NotStarted);
+    assert!(project.status() == SchedulableItemStatus::NotStarted);
 }
 
 #[test]
 fn promote_from_planned() {
     let mut project = sample_planned_project();
     project.promote();
-    assert!(project.status() == ProjectStatus::InProgress);
+    assert!(project.status() == SchedulableItemStatus::InProgress);
 }
 
 #[test]
 fn demote_from_planned() {
     let mut project = sample_planned_project();
     project.demote();
-    assert!(project.status() == ProjectStatus::NotStarted);
+    assert!(project.status() == SchedulableItemStatus::NotStarted);
 }
 
 #[test]
 fn promote_from_in_progress() {
     let mut project = sample_in_progress_project();
     project.promote();
-    assert!(project.status() == ProjectStatus::InReview);
+    assert!(project.status() == SchedulableItemStatus::InReview);
 }
 #[test]
 fn demote_from_in_progress() {
     let mut project = sample_in_progress_project();
     project.demote();
-    assert!(project.status() == ProjectStatus::Planned);
+    assert!(project.status() == SchedulableItemStatus::Planned);
 }
 
 #[test]
 fn promote_from_in_review() {
     let mut project = sample_in_review_project();
     project.promote();
-    assert!(project.status() == ProjectStatus::Completed);
+    assert!(project.status() == SchedulableItemStatus::Completed);
 }
 
 #[test]
 fn demote_from_in_review() {
     let mut project = sample_in_review_project();
     project.demote();
-    assert!(project.status() == ProjectStatus::InProgress);
+    assert!(project.status() == SchedulableItemStatus::InProgress);
 }
 
 #[test]
 fn promote_from_completed() {
     let mut project = sample_completed_project();
     project.promote();
-    assert!(project.status() == ProjectStatus::Completed);
+    assert!(project.status() == SchedulableItemStatus::Completed);
 }
 
 #[test]
 fn demote_from_completed() {
     let mut project = sample_completed_project();
     project.demote();
-    assert!(project.status() == ProjectStatus::Completed);
+    assert!(project.status() == SchedulableItemStatus::Completed);
 }
 
 #[test]
 fn archive() {
     let mut project = sample_project();
     project.archive();
-    assert!(project.status() == ProjectStatus::Archived);
+    assert!(project.status() == SchedulableItemStatus::Archived);
     let mut project = sample_planned_project();
     project.archive();
-    assert!(project.status() == ProjectStatus::Archived);
+    assert!(project.status() == SchedulableItemStatus::Archived);
     let mut project = sample_in_progress_project();
     project.archive();
-    assert!(project.status() == ProjectStatus::Archived);
+    assert!(project.status() == SchedulableItemStatus::Archived);
     let mut project = sample_in_review_project();
     project.archive();
-    assert!(project.status() == ProjectStatus::Archived);
+    assert!(project.status() == SchedulableItemStatus::Archived);
     let mut project = sample_completed_project();
     project.archive();
-    assert!(project.status() == ProjectStatus::Archived);
+    assert!(project.status() == SchedulableItemStatus::Archived);
     let mut project = sample_canceled_project();
     project.archive();
-    assert!(project.status() == ProjectStatus::Archived);
+    assert!(project.status() == SchedulableItemStatus::Archived);
 }
 
 #[test]
 fn promote_from_archived() {
     let mut project = sample_archived_project();
     project.promote();
-    assert!(project.status() == ProjectStatus::Archived); // Archive can't be promoted beyond
+    assert!(project.status() == SchedulableItemStatus::Archived); // Archive can't be promoted beyond
 }
 
 #[test]
 fn demote_from_archived() {
     let mut project = sample_archived_project();
     project.demote();
-    assert!(project.status() == ProjectStatus::Archived);
+    assert!(project.status() == SchedulableItemStatus::Archived);
 }
 
 #[test]
 fn cancel() {
     let mut project = sample_project();
     project.cancel();
-    assert!(project.status() == ProjectStatus::Canceled);
+    assert!(project.status() == SchedulableItemStatus::Canceled);
 }
 
 #[test]
 fn cancel_archived_project() {
     let mut project = sample_archived_project();
     project.cancel();
-    assert!(project.status() == ProjectStatus::Archived);
+    assert!(project.status() == SchedulableItemStatus::Archived);
 }
 
 #[test]
 fn promote_from_canceled() {
     let mut project = sample_canceled_project();
     project.promote();
-    assert!(project.status() == ProjectStatus::Canceled);
+    assert!(project.status() == SchedulableItemStatus::Canceled);
 }
 
 #[test]
 fn demote_from_canceled() {
     let mut project = sample_canceled_project();
     project.demote();
-    assert!(project.status() == ProjectStatus::Canceled);
+    assert!(project.status() == SchedulableItemStatus::Canceled);
 }
 
 #[test]
@@ -341,7 +340,7 @@ fn add_child_project_to_project() {
     let mut project = sample_project();
     let child_project = sample_project();
     assert_ne!(project, child_project);
-    project.add_child(ProjectSubElement::Project(child_project.id()));
+    project.add_child(SchedulableItem::Project(child_project.id()));
     assert!(project.has_children());
     assert!(project.children().len() == 1);
     assert!(project.project_children().len() == 1);
@@ -352,9 +351,9 @@ fn add_child_project_to_project() {
 fn add_multiple_child_projects_to_project() {
     let mut project = sample_project();
     let children = vec![
-        ProjectSubElement::Project(sample_project().id()),
-        ProjectSubElement::Project(sample_project().id()),
-        ProjectSubElement::Project(sample_project().id()),
+        SchedulableItem::Project(sample_project().id()),
+        SchedulableItem::Project(sample_project().id()),
+        SchedulableItem::Project(sample_project().id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
@@ -368,13 +367,13 @@ fn remove_child_project_from_project() {
     let mut project = sample_project();
     let child_project_2 = sample_project();
     let children = vec![
-        ProjectSubElement::Project(sample_project().id()),
-        ProjectSubElement::Project(child_project_2.id()),
-        ProjectSubElement::Project(sample_project().id()),
+        SchedulableItem::Project(sample_project().id()),
+        SchedulableItem::Project(child_project_2.id()),
+        SchedulableItem::Project(sample_project().id()),
     ];
     project.add_children(children);
-    project.remove_child(ProjectSubElement::Project(child_project_2.id()));
-    assert!(!project.has_child(&ProjectSubElement::Project(child_project_2.id())));
+    project.remove_child(SchedulableItem::Project(child_project_2.id()));
+    assert!(!project.has_child(&SchedulableItem::Project(child_project_2.id())));
 }
 
 #[test]
@@ -384,13 +383,13 @@ fn remove_multiple_child_projects_from_project() {
     let child_project_2 = sample_project();
     let child_project_3 = sample_project();
     let children = vec![
-        ProjectSubElement::Project(child_project_1.id()),
-        ProjectSubElement::Project(child_project_2.id()),
-        ProjectSubElement::Project(child_project_3.id()),
+        SchedulableItem::Project(child_project_1.id()),
+        SchedulableItem::Project(child_project_2.id()),
+        SchedulableItem::Project(child_project_3.id()),
     ];
     let children_to_remove = vec![
-        ProjectSubElement::Project(child_project_1.id()),
-        ProjectSubElement::Project(child_project_3.id()),
+        SchedulableItem::Project(child_project_1.id()),
+        SchedulableItem::Project(child_project_3.id()),
     ];
     project.add_children(children);
     project.remove_children(children_to_remove);
@@ -398,14 +397,14 @@ fn remove_multiple_child_projects_from_project() {
     assert!(project.children().len() == 1);
     assert!(project.project_children().len() == 1);
     assert!(project.task_children().len() == 0);
-    assert!(project.has_child(&ProjectSubElement::Project(child_project_2.id())));
+    assert!(project.has_child(&SchedulableItem::Project(child_project_2.id())));
 }
 
 #[test]
 fn add_child_task_to_project() {
     let mut project = sample_project();
     let child_task = sample_task();
-    project.add_child(ProjectSubElement::Task(child_task.id()));
+    project.add_child(SchedulableItem::Task(child_task.id()));
     assert!(project.has_children());
     assert!(project.children().len() == 1);
     assert!(project.project_children().len() == 0);
@@ -419,9 +418,9 @@ fn add_multiple_child_tasks_to_project() {
     let child_task_2 = sample_task();
     let child_task_3 = sample_task();
     let children = vec![
-        ProjectSubElement::Task(child_task_1.id()),
-        ProjectSubElement::Task(child_task_2.id()),
-        ProjectSubElement::Task(child_task_3.id()),
+        SchedulableItem::Task(child_task_1.id()),
+        SchedulableItem::Task(child_task_2.id()),
+        SchedulableItem::Task(child_task_3.id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
@@ -437,16 +436,16 @@ fn remove_child_task_from_project() {
     let child_task_2 = sample_task();
     let child_task_3 = sample_task();
     let children = vec![
-        ProjectSubElement::Task(child_task_1.id()),
-        ProjectSubElement::Task(child_task_2.id()),
-        ProjectSubElement::Task(child_task_3.id()),
+        SchedulableItem::Task(child_task_1.id()),
+        SchedulableItem::Task(child_task_2.id()),
+        SchedulableItem::Task(child_task_3.id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
     assert!(project.children().len() == 3);
     assert!(project.project_children().len() == 0);
     assert!(project.task_children().len() == 3);
-    project.remove_child(ProjectSubElement::Task(child_task_2.id()));
+    project.remove_child(SchedulableItem::Task(child_task_2.id()));
     assert!(project.has_children());
     assert!(project.children().len() == 2);
     assert!(project.project_children().len() == 0);
@@ -460,13 +459,13 @@ fn remove_multiple_child_tasks_from_project() {
     let child_task_2 = sample_task();
     let child_task_3 = sample_task();
     let children = vec![
-        ProjectSubElement::Task(child_task_1.id()),
-        ProjectSubElement::Task(child_task_2.id()),
-        ProjectSubElement::Task(child_task_3.id()),
+        SchedulableItem::Task(child_task_1.id()),
+        SchedulableItem::Task(child_task_2.id()),
+        SchedulableItem::Task(child_task_3.id()),
     ];
     let children_to_remove = vec![
-        ProjectSubElement::Task(child_task_1.id()),
-        ProjectSubElement::Task(child_task_3.id()),
+        SchedulableItem::Task(child_task_1.id()),
+        SchedulableItem::Task(child_task_3.id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
@@ -491,12 +490,12 @@ fn add_mixed_children_to_project() {
     let child_task_2 = sample_task();
     let child_task_3 = sample_task();
     let children = vec![
-        ProjectSubElement::Project(child_project_1.id()),
-        ProjectSubElement::Project(child_project_2.id()),
-        ProjectSubElement::Project(child_project_3.id()),
-        ProjectSubElement::Task(child_task_1.id()),
-        ProjectSubElement::Task(child_task_2.id()),
-        ProjectSubElement::Task(child_task_3.id()),
+        SchedulableItem::Project(child_project_1.id()),
+        SchedulableItem::Project(child_project_2.id()),
+        SchedulableItem::Project(child_project_3.id()),
+        SchedulableItem::Task(child_task_1.id()),
+        SchedulableItem::Task(child_task_2.id()),
+        SchedulableItem::Task(child_task_3.id()),
     ];
     project.add_children(children);
     assert!(project.has_children());
