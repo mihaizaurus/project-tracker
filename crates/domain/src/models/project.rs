@@ -1,9 +1,11 @@
 use crate::builders::project_builder::ProjectBuilder;
 use crate::id::Id;
-use crate::models::person::Person;
-use crate::models::schedulable::{Schedulable, SchedulableItem, SchedulableItemStatus};
-use crate::models::tag::Tag;
-use crate::models::task::Task;
+use crate::models::{
+    person::Person,
+    schedulable::{Schedulable, SchedulableItem, SchedulableItemStatus},
+    tag::Tag,
+    task::Task,
+};
 use crate::{EntityType, HasId};
 
 use chrono::{DateTime, Datelike, Utc};
