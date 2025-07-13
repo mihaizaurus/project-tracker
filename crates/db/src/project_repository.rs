@@ -1,14 +1,20 @@
-use std::sync::Arc;
-use project_tracker_core::{
-    id::Id, 
-    models::{project::{Project, ProjectStatus, ProjectSubElement}, person::Person, tag::Tag, task::Task}, 
-    builders::project_builder::ProjectBuilder,
-    HasId
-};
-use crate::{database::Database, DatabaseError, Result};
+use crate::{DatabaseError, Result, database::Database};
 use async_trait::async_trait;
 use log::{debug, error};
-use serde::{Serialize, Deserialize};
+use project_tracker_core::{
+    HasId,
+    builders::project_builder::ProjectBuilder,
+    id::Id,
+    models::{
+        person::Person,
+        project::Project,
+        schedulable::{Schedulable, SchedulableItem, SchedulableItemStatus},
+        tag::Tag,
+        task::Task,
+    },
+};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use surrealdb::sql::Datetime as SurrealDatetime;
 
 // DTO for database operations (excludes id since SurrealDB manages it)
@@ -30,19 +36,27 @@ impl From<Project> for ProjectRecord {
         Self {
             name: project.name().to_string(),
             owner_id: project.owner_id().map(|id| id.clone().to_string()),
-            description: if project.description().is_empty() { 
-                None 
-            } else { 
-                Some(project.description().to_string()) 
+            description: if project.description().is_empty() {
+                None
+            } else {
+                Some(project.description().to_string())
             },
             tags: project.tags().iter().map(|id| id.to_string()).collect(),
             start_date: project.start_date().map(SurrealDatetime::from),
             due_date: project.due_date().map(SurrealDatetime::from),
-            children: project.children().iter().map(|child| match child {
-                ProjectSubElement::Project(id) => id.to_string(),
-                ProjectSubElement::Task(id) => id.to_string(),
-            }).collect(),
-            dependencies: project.dependencies().iter().map(|id| id.to_string()).collect(),
+            children: project
+                .children()
+                .iter()
+                .map(|child| match child {
+                    SchedulableItem::Project(id) => id.to_string(),
+                    SchedulableItem::Task(id) => id.to_string(),
+                })
+                .collect(),
+            dependencies: project
+                .dependencies()
+                .iter()
+                .map(|id| id.to_string())
+                .collect(),
             status: project.status().to_string(),
         }
     }
@@ -53,53 +67,71 @@ impl ProjectRecord {
         let record = self;
         // Parse status
         let status = match record.status.as_str() {
-            "NotStarted" => ProjectStatus::NotStarted,
-            "Planned" => ProjectStatus::Planned,
-            "InProgress" => ProjectStatus::InProgress,
-            "InReview" => ProjectStatus::InReview,
-            "Completed" => ProjectStatus::Completed,
-            "Archived" => ProjectStatus::Archived,
-            "Canceled" => ProjectStatus::Canceled,
+            "NotStarted" => SchedulableItemStatus::NotStarted,
+            "Planned" => SchedulableItemStatus::Planned,
+            "InProgress" => SchedulableItemStatus::InProgress,
+            "InReview" => SchedulableItemStatus::InReview,
+            "Completed" => SchedulableItemStatus::Completed,
+            "Archived" => SchedulableItemStatus::Archived,
+            "Canceled" => SchedulableItemStatus::Canceled,
             s => return Err(DatabaseError::QueryError(format!("Invalid status: {}", s))),
         };
-        
+
         // Parse owner_id
         let owner_id = if let Some(owner_str) = record.owner_id {
-            Some(owner_str.parse::<Id<Person>>()
-                .map_err(|e| DatabaseError::QueryError(format!("Invalid owner_id: {:?}", e)))?)
+            Some(
+                owner_str
+                    .parse::<Id<Person>>()
+                    .map_err(|e| DatabaseError::QueryError(format!("Invalid owner_id: {:?}", e)))?,
+            )
         } else {
             None
         };
-        
+
         // Parse tags
-        let tags = record.tags.into_iter()
+        let tags = record
+            .tags
+            .into_iter()
             .map(|tag_str| tag_str.parse::<Id<Tag>>())
             .collect::<std::result::Result<Vec<_>, _>>()
             .map_err(|e| DatabaseError::QueryError(format!("Invalid tag ID: {:?}", e)))?;
-        
+
         // Parse children
-        let children = record.children.into_iter()
+        let children = record
+            .children
+            .into_iter()
             .map(|child_str| {
                 if child_str.starts_with("project-") {
-                    child_str.parse::<Id<Project>>()
-                        .map(ProjectSubElement::Project)
-                        .map_err(|e| DatabaseError::QueryError(format!("Invalid project child ID: {:?}", e)))
+                    child_str
+                        .parse::<Id<Project>>()
+                        .map(SchedulableItem::Project)
+                        .map_err(|e| {
+                            DatabaseError::QueryError(format!("Invalid project child ID: {:?}", e))
+                        })
                 } else if child_str.starts_with("task-") {
-                    child_str.parse::<Id<Task>>()
-                        .map(ProjectSubElement::Task)
-                        .map_err(|e| DatabaseError::QueryError(format!("Invalid task child ID: {:?}", e)))
+                    child_str
+                        .parse::<Id<Task>>()
+                        .map(SchedulableItem::Task)
+                        .map_err(|e| {
+                            DatabaseError::QueryError(format!("Invalid task child ID: {:?}", e))
+                        })
                 } else {
-                    Err(DatabaseError::QueryError(format!("Unknown child type: {}", child_str)))
+                    Err(DatabaseError::QueryError(format!(
+                        "Unknown child type: {}",
+                        child_str
+                    )))
                 }
             })
             .collect::<Result<Vec<_>>>()?;
-        
+
         // Parse dependencies
-        let dependencies = record.dependencies.into_iter()
+        let dependencies = record
+            .dependencies
+            .into_iter()
             .map(|dep_str| dep_str.parse::<Id<Project>>())
             .collect::<std::result::Result<Vec<_>, _>>()
             .map_err(|e| DatabaseError::QueryError(format!("Invalid dependency ID: {:?}", e)))?;
-        
+
         // Build the project
         let mut builder = ProjectBuilder::new()
             .with_id(id)
@@ -108,25 +140,25 @@ impl ProjectRecord {
             .with_tags(tags)
             .with_children(children)
             .with_dependencies(dependencies);
-        
+
         if let Some(owner_id) = owner_id {
             builder = builder.with_owner_id(Some(owner_id));
         }
-        
+
         if let Some(description) = record.description {
             if !description.is_empty() {
                 builder = builder.with_description(&description);
             }
         }
-        
+
         if let Some(start_date) = record.start_date {
             builder = builder.with_start_date(Some(start_date.into()));
         }
-        
+
         if let Some(due_date) = record.due_date {
             builder = builder.with_due_date(Some(due_date.into()));
         }
-        
+
         Ok(builder.build())
     }
 }
@@ -153,16 +185,18 @@ impl ProjectRepository for ProdProjectRepository {
     async fn create(&self, project: Project) -> Result<()> {
         let project_id = project.id();
         debug!("Creating project with ID: {}", project_id);
-        
+
         let id_str = project_id.to_string();
         let project_record = ProjectRecord::from(project);
-        
-        let result: Result<Option<ProjectRecord>> = self.db.client()
+
+        let result: Result<Option<ProjectRecord>> = self
+            .db
+            .client()
             .create(("project", id_str.as_str()))
             .content(project_record)
             .await
             .map_err(|e| DatabaseError::QueryError(format!("Failed to create project: {}", e)));
-        
+
         match result {
             Ok(_) => {
                 debug!("Successfully created project with ID: {}", project_id);
@@ -177,16 +211,18 @@ impl ProjectRepository for ProdProjectRepository {
 
     async fn get_by_id(&self, id: Id<Project>) -> Result<Option<Project>> {
         debug!("Fetching project with ID: {}", id);
-        
+
         // Convert the custom ID to the format SurrealDB expects
         let id_str = id.to_string();
-        
+
         // Query using the string ID - get the record first
-        let result: Result<Option<ProjectRecord>> = self.db.client()
+        let result: Result<Option<ProjectRecord>> = self
+            .db
+            .client()
             .select(("project", id_str.as_str()))
             .await
             .map_err(|e| DatabaseError::QueryError(format!("Failed to get project by ID: {}", e)));
-        
+
         match result {
             Ok(Some(project_record)) => {
                 debug!("Found project record with ID: {}", id);
@@ -217,15 +253,17 @@ impl ProdProjectRepository {
     pub async fn update(&self, project: Project) -> Result<()> {
         let project_id = project.id();
         debug!("Updating project with ID: {}", project_id);
-        
+
         let id_str = project_id.to_string();
-        
-        let result: Result<Option<Project>> = self.db.client()
+
+        let result: Result<Option<Project>> = self
+            .db
+            .client()
             .update(("project", id_str.as_str()))
             .content(project)
             .await
             .map_err(|e| DatabaseError::QueryError(format!("Failed to update project: {}", e)));
-        
+
         match result {
             Ok(Some(_)) => {
                 debug!("Successfully updated project with ID: {}", project_id);
@@ -233,7 +271,10 @@ impl ProdProjectRepository {
             }
             Ok(None) => {
                 error!("Project not found for update: {}", project_id);
-                Err(DatabaseError::QueryError(format!("Project with ID {} not found", project_id)))
+                Err(DatabaseError::QueryError(format!(
+                    "Project with ID {} not found",
+                    project_id
+                )))
             }
             Err(e) => {
                 error!("Failed to update project: {:?}", e);
@@ -241,18 +282,20 @@ impl ProdProjectRepository {
             }
         }
     }
-    
+
     #[allow(dead_code)]
     pub async fn delete(&self, id: Id<Project>) -> Result<()> {
         debug!("Deleting project with ID: {}", id);
-        
+
         let id_str = id.to_string();
-        
-        let result: Result<Option<Project>> = self.db.client()
+
+        let result: Result<Option<Project>> = self
+            .db
+            .client()
             .delete(("project", id_str.as_str()))
             .await
             .map_err(|e| DatabaseError::QueryError(format!("Failed to delete project: {}", e)));
-        
+
         match result {
             Ok(Some(_)) => {
                 debug!("Successfully deleted project with ID: {}", id);
@@ -260,7 +303,10 @@ impl ProdProjectRepository {
             }
             Ok(None) => {
                 error!("Project not found for deletion: {}", id);
-                Err(DatabaseError::QueryError(format!("Project with ID {} not found", id)))
+                Err(DatabaseError::QueryError(format!(
+                    "Project with ID {} not found",
+                    id
+                )))
             }
             Err(e) => {
                 error!("Failed to delete project: {:?}", e);
@@ -268,16 +314,16 @@ impl ProdProjectRepository {
             }
         }
     }
-    
+
     #[allow(dead_code)]
     pub async fn get_all(&self) -> Result<Vec<Project>> {
         debug!("Fetching all projects");
-        
-        let result: Result<Vec<Project>> = self.db.client()
-            .select("project")
-            .await
-            .map_err(|e| DatabaseError::QueryError(format!("Failed to get all projects: {}", e)));
-        
+
+        let result: Result<Vec<Project>> =
+            self.db.client().select("project").await.map_err(|e| {
+                DatabaseError::QueryError(format!("Failed to get all projects: {}", e))
+            });
+
         match result {
             Ok(projects) => {
                 debug!("Found {} projects", projects.len());
@@ -289,26 +335,29 @@ impl ProdProjectRepository {
             }
         }
     }
-    
+
     #[allow(dead_code)]
-    pub async fn get_by_owner(&self, owner_id: Id<project_tracker_core::models::person::Person>) -> Result<Vec<Project>> {
+    pub async fn get_by_owner(
+        &self,
+        owner_id: Id<project_tracker_core::models::person::Person>,
+    ) -> Result<Vec<Project>> {
         debug!("Fetching projects for owner: {}", owner_id);
-        
+
         let query = format!(
             "SELECT * FROM project WHERE owner_id = '{}'",
             owner_id.to_string()
         );
-        
-        let mut response = self.db.client()
-            .query(query)
-            .await
-            .map_err(|e| DatabaseError::QueryError(format!("Failed to get projects by owner: {}", e)))?;
-        
-        let projects: Vec<Project> = response
-            .take(0)
-            .map_err(|e| DatabaseError::QueryError(format!("Failed to parse projects by owner: {}", e)))?;
-        
+
+        let mut response = self.db.client().query(query).await.map_err(|e| {
+            DatabaseError::QueryError(format!("Failed to get projects by owner: {}", e))
+        })?;
+
+        let projects: Vec<Project> = response.take(0).map_err(|e| {
+            DatabaseError::QueryError(format!("Failed to parse projects by owner: {}", e))
+        })?;
+
         debug!("Found {} projects for owner: {}", projects.len(), owner_id);
         Ok(projects)
     }
 }
+
