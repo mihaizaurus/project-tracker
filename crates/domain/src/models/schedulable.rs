@@ -1,9 +1,11 @@
 use crate::{
     EntityType,
     id::Id,
-    models::{person::Person, project::ProjectStatus, project::ProjectSubElement, tag::Tag},
+    models::{person::Person, project::Project, tag::Tag, task::Task},
 };
 use chrono::{DateTime, Utc};
+use core::fmt;
+use serde::{Deserialize, Serialize};
 
 pub trait Schedulable {
     type IdType: EntityType;
@@ -17,7 +19,7 @@ pub trait Schedulable {
     fn tags(&self) -> Vec<Id<Tag>>;
     fn start_date(&self) -> Option<DateTime<Utc>>;
     fn due_date(&self) -> Option<DateTime<Utc>>;
-    fn status(&self) -> ProjectStatus;
+    fn status(&self) -> SchedulableItemStatus;
     fn children(&self) -> Vec<Self::ChildType>;
     fn dependencies(&self) -> Vec<Self::DependencyType>;
 
@@ -27,7 +29,7 @@ pub trait Schedulable {
     fn has_tags(&self) -> bool;
     fn has_start_date(&self) -> bool;
     fn has_due_date(&self) -> bool;
-    fn has_child(&self, child_to_validate: &ProjectSubElement) -> bool;
+    fn has_child(&self, child_to_validate: &SchedulableItem) -> bool;
     fn has_children(&self) -> bool;
     fn has_dependencies(&self) -> bool;
 
@@ -50,10 +52,10 @@ pub trait Schedulable {
     fn set_due_date(&mut self, due_date: DateTime<Utc>) -> &Self;
     fn remove_due_date(&mut self) -> &Self;
 
-    fn add_child(&mut self, child: ProjectSubElement) -> &Self;
-    fn add_children(&mut self, children: Vec<ProjectSubElement>) -> &Self;
-    fn remove_child(&mut self, child: ProjectSubElement) -> &Self;
-    fn remove_children(&mut self, children: Vec<ProjectSubElement>) -> &Self;
+    fn add_child(&mut self, child: SchedulableItem) -> &Self;
+    fn add_children(&mut self, children: Vec<SchedulableItem>) -> &Self;
+    fn remove_child(&mut self, child: SchedulableItem) -> &Self;
+    fn remove_children(&mut self, children: Vec<SchedulableItem>) -> &Self;
     fn remove_all_children(&mut self) -> &Self;
 
     fn remove_all_dependencies(&mut self) -> &Self;
@@ -67,5 +69,36 @@ pub trait Schedulable {
     fn is_valid_tag(&self, tag_id: &Id<Tag>) -> bool;
     fn is_valid_start_date(&self, start_date: Option<DateTime<Utc>>) -> bool;
     fn is_valid_due_date(&self, due_date: Option<DateTime<Utc>>) -> bool;
-    fn is_valid_child(&self, child_to_validate: &ProjectSubElement) -> bool;
+    fn is_valid_child(&self, child_to_validate: &SchedulableItem) -> bool;
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SchedulableItem {
+    Project(Id<Project>),
+    Task(Id<Task>),
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum SchedulableItemStatus {
+    NotStarted,
+    Planned,
+    InProgress,
+    InReview,
+    Completed,
+    Archived,
+    Canceled,
+}
+
+impl fmt::Display for SchedulableItemStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SchedulableItemStatus::NotStarted => write!(f, "NotStarted"),
+            SchedulableItemStatus::Planned => write!(f, "Planned"),
+            SchedulableItemStatus::InProgress => write!(f, "InProgress"),
+            SchedulableItemStatus::InReview => write!(f, "InReview"),
+            SchedulableItemStatus::Completed => write!(f, "Completed"),
+            SchedulableItemStatus::Archived => write!(f, "Archived"),
+            SchedulableItemStatus::Canceled => write!(f, "Canceled"),
+        }
+    }
 }
