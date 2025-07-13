@@ -1,12 +1,8 @@
-use axum::{response::IntoResponse,Json};
+use axum::{Json, response::IntoResponse};
 use project_tracker_core::HasId;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
-use crate::{
-    dto::task_dto::TaskDTO, 
-    services::task_services,
-    Result
-};
+use crate::{Result, dto::task_dto::TaskDTO, services::task_services};
 
 pub async fn list_tasks() -> impl IntoResponse {
     let projects = task_services::get_all_tasks();
@@ -24,3 +20,4 @@ pub async fn post_task(payload: Json<TaskDTO>) -> Result<Json<Value>> {
         "project_id": task.id().to_string(),
     })))
 }
+
