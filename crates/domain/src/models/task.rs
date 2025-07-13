@@ -1,8 +1,7 @@
 use crate::builders::task_builder::TaskBuilder;
 use crate::id::Id;
 use crate::models::person::Person;
-use crate::models::project::{ProjectStatus, ProjectSubElement};
-use crate::models::schedulable::Schedulable;
+use crate::models::schedulable::{Schedulable, SchedulableItem, SchedulableItemStatus};
 use crate::models::tag::Tag;
 use crate::{EntityType, HasId};
 
@@ -22,7 +21,7 @@ pub struct Task {
     due_date: Option<DateTime<Utc>>,
     children: Vec<Id<Task>>,
     dependencies: Vec<Id<Task>>,
-    status: ProjectStatus,
+    status: SchedulableItemStatus,
 }
 
 impl Task {
@@ -114,6 +113,36 @@ impl fmt::Display for Task {
     }
 }
 
+impl fmt::Debug for Task {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "[[{}]]", self.name)?;
+        writeln!(f, "- Task Id: {}", self.id)?;
+        if let Some(description) = &self.description {
+            writeln!(f, "- Task Description: {description}")?;
+        }
+        if let Some(owner_id) = &self.owner_id {
+            writeln!(f, "- Task Owner: {owner_id}")?;
+        }
+        if let Some(start_date) = &self.start_date {
+            let year = start_date.year();
+            let month = start_date.month();
+            let day = start_date.day();
+            let week = start_date.iso_week().week();
+            writeln!(f, "- Task starts on: {day}-{month}-{year} [Week {week}]")?;
+        }
+        if let Some(due_date) = &self.due_date {
+            let year = due_date.year();
+            let month = due_date.month();
+            let day = due_date.day();
+            let week = due_date.iso_week().week();
+            writeln!(f, "- Task is due on: {day}-{month}-{year} [Week {week}]")?;
+        }
+        writeln!(f, "- Task has {} children", self.children.len())?;
+        writeln!(f, "- Task has {} dependencies", self.dependencies.len())?;
+        Ok(())
+    }
+}
+
 impl EntityType for Task {
     fn prefix() -> &'static str {
         "task"
@@ -163,7 +192,7 @@ impl Schedulable for Task {
         self.due_date
     }
 
-    fn status(&self) -> ProjectStatus {
+    fn status(&self) -> SchedulableItemStatus {
         self.status.clone()
     }
 
@@ -198,8 +227,8 @@ impl Schedulable for Task {
         self.due_date.is_some()
     }
 
-    fn has_child(&self, child_to_validate: &ProjectSubElement) -> bool {
-        if let ProjectSubElement::Task(task_id) = child_to_validate {
+    fn has_child(&self, child_to_validate: &SchedulableItem) -> bool {
+        if let SchedulableItem::Task(task_id) = child_to_validate {
             self.children.contains(task_id)
         } else {
             false
@@ -304,31 +333,31 @@ impl Schedulable for Task {
         self
     }
 
-    fn add_child(&mut self, child: ProjectSubElement) -> &Self {
+    fn add_child(&mut self, child: SchedulableItem) -> &Self {
         if self.is_valid_child(&child) {
-            if let ProjectSubElement::Task(task_id) = child {
+            if let SchedulableItem::Task(task_id) = child {
                 self.children.push(task_id);
             }
         }
         self
     }
 
-    fn add_children(&mut self, children: Vec<ProjectSubElement>) -> &Self {
+    fn add_children(&mut self, children: Vec<SchedulableItem>) -> &Self {
         for child in children {
             self.add_child(child);
         }
         self
     }
 
-    fn remove_child(&mut self, child: ProjectSubElement) -> &Self {
-        if let ProjectSubElement::Task(task_id) = child {
+    fn remove_child(&mut self, child: SchedulableItem) -> &Self {
+        if let SchedulableItem::Task(task_id) = child {
             let index = self.children.iter().position(|t| t == &task_id).unwrap();
             self.children.remove(index);
         }
         self
     }
 
-    fn remove_children(&mut self, children: Vec<ProjectSubElement>) -> &Self {
+    fn remove_children(&mut self, children: Vec<SchedulableItem>) -> &Self {
         if !children.is_empty() {
             for child in children {
                 self.remove_child(child);
@@ -349,10 +378,10 @@ impl Schedulable for Task {
 
     fn promote(&mut self) -> &Self {
         match self.status {
-            ProjectStatus::NotStarted => self.status = ProjectStatus::Planned,
-            ProjectStatus::Planned => self.status = ProjectStatus::InProgress,
-            ProjectStatus::InProgress => self.status = ProjectStatus::InReview,
-            ProjectStatus::InReview => self.status = ProjectStatus::Completed,
+            SchedulableItemStatus::NotStarted => self.status = SchedulableItemStatus::Planned,
+            SchedulableItemStatus::Planned => self.status = SchedulableItemStatus::InProgress,
+            SchedulableItemStatus::InProgress => self.status = SchedulableItemStatus::InReview,
+            SchedulableItemStatus::InReview => self.status = SchedulableItemStatus::Completed,
             _ => (),
         }
         self
@@ -360,31 +389,31 @@ impl Schedulable for Task {
 
     fn demote(&mut self) -> &Self {
         match self.status {
-            ProjectStatus::InReview => self.status = ProjectStatus::InProgress,
-            ProjectStatus::InProgress => self.status = ProjectStatus::Planned,
-            ProjectStatus::Planned => self.status = ProjectStatus::NotStarted,
+            SchedulableItemStatus::InReview => self.status = SchedulableItemStatus::InProgress,
+            SchedulableItemStatus::InProgress => self.status = SchedulableItemStatus::Planned,
+            SchedulableItemStatus::Planned => self.status = SchedulableItemStatus::NotStarted,
             _ => (),
         }
         self
     }
 
     fn archive(&mut self) -> &Self {
-        if self.status != ProjectStatus::Archived {
-            self.status = ProjectStatus::Archived;
+        if self.status != SchedulableItemStatus::Archived {
+            self.status = SchedulableItemStatus::Archived;
         }
         self
     }
 
     fn cancel(&mut self) -> &Self {
         match self.status {
-            ProjectStatus::Archived => {
+            SchedulableItemStatus::Archived => {
                 info!("Task is already archived and cannot be canceled");
             }
-            ProjectStatus::Completed => {
+            SchedulableItemStatus::Completed => {
                 info!("Task is already completed and cannot be canceled");
             }
             _ => {
-                self.status = ProjectStatus::Canceled;
+                self.status = SchedulableItemStatus::Canceled;
             }
         }
         self
@@ -411,8 +440,8 @@ impl Schedulable for Task {
         }
     }
 
-    fn is_valid_child(&self, child_to_validate: &ProjectSubElement) -> bool {
-        if let ProjectSubElement::Task(task_id) = child_to_validate {
+    fn is_valid_child(&self, child_to_validate: &SchedulableItem) -> bool {
+        if let SchedulableItem::Task(task_id) = child_to_validate {
             &HasId::id(self) != task_id
         } else {
             false

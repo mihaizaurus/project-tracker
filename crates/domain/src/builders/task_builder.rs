@@ -1,9 +1,6 @@
 use crate::id::Id;
-use crate::{EntityType,HasId};
-use crate::models::person::Person;
-use crate::models::project::ProjectStatus;
-use crate::models::tag::Tag;
-use crate::models::task::Task;
+use crate::models::{person::Person, schedulable::SchedulableItemStatus, tag::Tag, task::Task};
+use crate::{EntityType, HasId};
 
 use chrono::{DateTime, Utc};
 
@@ -18,7 +15,7 @@ pub struct TaskBuilder {
     due_date: Option<DateTime<Utc>>,
     children: Vec<Id<Task>>,
     dependencies: Vec<Id<Task>>,
-    status: ProjectStatus,
+    status: SchedulableItemStatus,
 }
 
 impl TaskBuilder {
@@ -33,7 +30,7 @@ impl TaskBuilder {
             due_date: None,
             children: Vec::new(),
             dependencies: Vec::new(),
-            status: ProjectStatus::NotStarted
+            status: SchedulableItemStatus::NotStarted,
         }
     }
 
@@ -82,7 +79,7 @@ impl TaskBuilder {
         self
     }
 
-    pub fn with_status(mut self, status: ProjectStatus) -> Self {
+    pub fn with_status(mut self, status: SchedulableItemStatus) -> Self {
         self.status = status;
         self
     }
@@ -119,7 +116,7 @@ impl TaskBuilder {
         self.dependencies.clone()
     }
 
-    pub fn status(&self) -> ProjectStatus {
+    pub fn status(&self) -> SchedulableItemStatus {
         self.status.clone()
     }
 
@@ -141,3 +138,4 @@ impl HasId for TaskBuilder {
         self.id.clone()
     }
 }
+
