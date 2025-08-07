@@ -120,22 +120,6 @@ impl Project {
     pub fn is_valid_dependency(&self, dependency_project_id: &Id<Project>) -> bool {
         dependency_project_id != &HasId::id(self)
     }
-
-    pub fn is_valid_start_date(&self, start_date: Option<DateTime<Utc>>) -> bool {
-        match (start_date, self.due_date()) {
-            (Some(start), Some(due)) => start <= due, // due date not before start date
-            _ => true,                                // Defaults to true if start_date set to None
-        }
-    }
-
-    pub fn is_valid_due_date(&self, due_date: Option<DateTime<Utc>>) -> bool {
-        match (self.start_date(), due_date) {
-            (Some(start), Some(due)) => start <= due, // due date not before start date
-            (_, Some(due)) => due >= Utc::now(),      // due date not in the past
-            _ => true,                                // Defaults to true if due_date set to None
-        }
-    }
-
     pub fn is_valid_tag(&self, tag_id: &Id<Tag>) -> bool {
         !self.tags().contains(tag_id)
         // further validation may be needed
@@ -263,7 +247,6 @@ impl HasId for Project {
 }
 
 impl Schedulable for Project {
-    type IdType = Project;
     type ChildType = SchedulableItem;
     type DependencyType = Id<Project>;
 

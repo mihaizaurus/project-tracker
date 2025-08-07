@@ -158,7 +158,6 @@ impl HasId for Task {
 }
 
 impl Schedulable for Task {
-    type IdType = Task;
     type ChildType = Id<Task>;
     type DependencyType = Id<Task>;
 

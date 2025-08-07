@@ -1,5 +1,4 @@
 use crate::{
-    EntityType,
     id::Id,
     models::{person::Person, project::Project, tag::Tag, task::Task},
 };
@@ -8,7 +7,6 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 pub trait Schedulable {
-    type IdType: EntityType;
     type ChildType;
     type DependencyType;
 
