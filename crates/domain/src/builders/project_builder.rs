@@ -128,6 +128,12 @@ impl ProjectBuilder {
     }
 }
 
+impl Default for ProjectBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EntityType for ProjectBuilder {
     fn prefix() -> &'static str {
         "project"
@@ -141,4 +147,3 @@ impl HasId for ProjectBuilder {
         self.id.clone()
     }
 }
-
