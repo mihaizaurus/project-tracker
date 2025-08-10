@@ -1,19 +1,19 @@
-use std::str::FromStr;
-use std::fmt;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime,Utc};
+use std::fmt;
+use std::str::FromStr;
 
 use crate::{Error, Result};
 use project_tracker_core::{
-    models::{
-        project::ProjectStatus,
-        task::Task,
-        tag::Tag,
-        person::Person
-    },
-    builders::task_builder::*,
     HasId,
-    id::Id
+    builders::task_builder::*,
+    id::Id,
+    models::{
+        person::Person,
+        schedulable::{Schedulable, SchedulableItemStatus},
+        tag::Tag,
+        task::Task,
+    },
 };
 
 #[derive(Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -27,59 +27,59 @@ pub struct TaskDTO {
     due_date: Option<String>,
     children: Vec<String>,
     dependencies: Vec<String>,
-    status: ProjectStatus,
+    status: SchedulableItemStatus,
 }
 
 impl fmt::Debug for TaskDTO {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Task [[{}]]",self.name)?;
-        writeln!(f, "- Task Id:{:?}",self.id)?;
+        writeln!(f, "Task [[{}]]", self.name)?;
+        writeln!(f, "- Task Id:{:?}", self.id)?;
         if let Some(description) = &self.description {
-            writeln!(f, "- Task Description: {}",description)?;
+            writeln!(f, "- Task Description: {}", description)?;
         } else {
             writeln!(f, "! No description provided")?;
         }
         if let Some(owner_id) = &self.owner_id {
-            writeln!(f, "- Task Owner: {:?}",owner_id)?;
+            writeln!(f, "- Task Owner: {:?}", owner_id)?;
         } else {
             writeln!(f, "! No project owner")?;
         }
         if let Some(start_date) = &self.start_date {
-            writeln!(f, "- Task starts on: {}",start_date)?;
+            writeln!(f, "- Task starts on: {}", start_date)?;
         } else {
             writeln!(f, "! No start date defined")?;
         }
         if let Some(due_date) = &self.due_date {
-            writeln!(f, "- Task is due on: {}",due_date)?;
+            writeln!(f, "- Task is due on: {}", due_date)?;
         } else {
             writeln!(f, "! No due date defined")?;
         }
-        writeln!(f, "- Task has {} children",self.children.len())?;
-        writeln!(f, "- Task has {} dependencies",self.dependencies.len())?;
-        writeln!(f, "- Task has {} tags",self.tags.len())?;
+        writeln!(f, "- Task has {} children", self.children.len())?;
+        writeln!(f, "- Task has {} dependencies", self.dependencies.len())?;
+        writeln!(f, "- Task has {} tags", self.tags.len())?;
         Ok(())
     }
 }
 
 impl fmt::Display for TaskDTO {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "[[{}]]",self.name)?;
-        writeln!(f, "- Task Id: {}",self.id)?;
+        writeln!(f, "[[{}]]", self.name)?;
+        writeln!(f, "- Task Id: {}", self.id)?;
         if let Some(description) = &self.description {
-            writeln!(f, "- Task Description: {}",description)?;
+            writeln!(f, "- Task Description: {}", description)?;
         }
         if let Some(owner_id) = &self.owner_id {
-            writeln!(f, "- Task Owner: {}",owner_id)?;
+            writeln!(f, "- Task Owner: {}", owner_id)?;
         }
         if let Some(start_date) = &self.start_date {
-            writeln!(f, "- Task starts on: {}",start_date)?;
+            writeln!(f, "- Task starts on: {}", start_date)?;
         }
         if let Some(due_date) = &self.due_date {
-            writeln!(f, "- Task is due on: {}",due_date)?;
+            writeln!(f, "- Task is due on: {}", due_date)?;
         }
-        writeln!(f, "- Task has {} children",self.children.len())?;
-        writeln!(f, "- Task has {} dependencies",self.dependencies.len())?;
-        writeln!(f, "- Task has {} tags",self.tags.len())?;
+        writeln!(f, "- Task has {} children", self.children.len())?;
+        writeln!(f, "- Task has {} dependencies", self.dependencies.len())?;
+        writeln!(f, "- Task has {} tags", self.tags.len())?;
         Ok(())
     }
 }
@@ -94,8 +94,16 @@ impl From<Task> for TaskDTO {
             tags: task.tags().into_iter().map(|id| id.to_string()).collect(),
             start_date: task.start_date().map(|date| date.to_rfc3339()),
             due_date: task.due_date().map(|date| date.to_rfc3339()),
-            children: task.children().into_iter().map(|child| child.to_string()).collect(),
-            dependencies: task.dependencies().into_iter().map(|id| id.to_string()).collect(),
+            children: task
+                .children()
+                .into_iter()
+                .map(|child| child.to_string())
+                .collect(),
+            dependencies: task
+                .dependencies()
+                .into_iter()
+                .map(|id| id.to_string())
+                .collect(),
             status: task.status(),
         }
     }
@@ -115,31 +123,47 @@ impl TryFrom<TaskDTO> for Task {
         let name = &dto.name;
         let owner_id = match dto.owner_id {
             Some(ref owner_id_str) => Some(Id::<Person>::from_str(owner_id_str)?),
-            None => None
+            None => None,
         };
         let description = match &dto.description {
             Some(desc) => desc,
-            None => ""
+            None => "",
         };
-        let tags: Vec<Id<Tag>> = dto.tags
+        let tags: Vec<Id<Tag>> = dto
+            .tags
             .into_iter()
-            .map(|id| Id::from_str(&id).map_err(|_| Error::ProjectError(format!("Invalid task id: {id:?}"))))
+            .map(|id| {
+                Id::from_str(&id)
+                    .map_err(|_| Error::ProjectError(format!("Invalid task id: {id:?}")))
+            })
             .collect::<Result<Vec<_>>>()?;
         let start_date = match dto.start_date {
-            Some(date_string) => Some(date_string.parse::<DateTime<Utc>>().map_err(|_| Error::ProjectError(format!("Invalid task start date: {date_string:?}")))?),
+            Some(date_string) => Some(date_string.parse::<DateTime<Utc>>().map_err(|_| {
+                Error::ProjectError(format!("Invalid task start date: {date_string:?}"))
+            })?),
             None => None,
         };
         let due_date = match dto.due_date {
-            Some(date_string) => Some(date_string.parse::<DateTime<Utc>>().map_err(|_| Error::ProjectError(format!("Invalid task due date: {date_string:?}")))?),
+            Some(date_string) => Some(date_string.parse::<DateTime<Utc>>().map_err(|_| {
+                Error::ProjectError(format!("Invalid task due date: {date_string:?}"))
+            })?),
             None => None,
         };
-        let children: Vec<Id<Task>> = dto.children
+        let children: Vec<Id<Task>> = dto
+            .children
             .into_iter()
-            .map(|id| Id::from_str(&id).map_err(|_| Error::ProjectError(format!("Invalid child task: {id:?}"))))
+            .map(|id| {
+                Id::from_str(&id)
+                    .map_err(|_| Error::ProjectError(format!("Invalid child task: {id:?}")))
+            })
             .collect::<Result<Vec<_>>>()?;
-        let dependencies: Vec<Id<Task>> = dto.dependencies
+        let dependencies: Vec<Id<Task>> = dto
+            .dependencies
             .into_iter()
-            .map(|id| Id::from_str(&id).map_err(|_| Error::ProjectError(format!("Invalid child dependency: {id:?}"))))
+            .map(|id| {
+                Id::from_str(&id)
+                    .map_err(|_| Error::ProjectError(format!("Invalid child dependency: {id:?}")))
+            })
             .collect::<Result<Vec<_>>>()?;
 
         Ok(TaskBuilder::new()

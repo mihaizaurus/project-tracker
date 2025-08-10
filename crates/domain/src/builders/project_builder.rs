@@ -1,8 +1,9 @@
 use crate::id::Id;
-use crate::{EntityType,HasId};
 use crate::models::person::Person;
-use crate::models::project::{Project,ProjectStatus,ProjectSubElement};
+use crate::models::project::Project;
+use crate::models::schedulable::{SchedulableItem, SchedulableItemStatus};
 use crate::models::tag::Tag;
+use crate::{EntityType, HasId};
 
 use chrono::{DateTime, Utc};
 
@@ -15,9 +16,9 @@ pub struct ProjectBuilder {
     tags: Vec<Id<Tag>>,
     start_date: Option<DateTime<Utc>>,
     due_date: Option<DateTime<Utc>>,
-    children: Vec<ProjectSubElement>,
+    children: Vec<SchedulableItem>,
     dependencies: Vec<Id<Project>>,
-    status: ProjectStatus,
+    status: SchedulableItemStatus,
 }
 
 impl ProjectBuilder {
@@ -32,7 +33,7 @@ impl ProjectBuilder {
             due_date: None,
             children: Vec::new(),
             dependencies: Vec::new(),
-            status: ProjectStatus::NotStarted
+            status: SchedulableItemStatus::NotStarted,
         }
     }
 
@@ -71,7 +72,7 @@ impl ProjectBuilder {
         self
     }
 
-    pub fn with_children(mut self, children: Vec<ProjectSubElement>) -> Self {
+    pub fn with_children(mut self, children: Vec<SchedulableItem>) -> Self {
         self.children = children;
         self
     }
@@ -81,7 +82,7 @@ impl ProjectBuilder {
         self
     }
 
-    pub fn with_status(mut self, status: ProjectStatus) -> Self {
+    pub fn with_status(mut self, status: SchedulableItemStatus) -> Self {
         self.status = status;
         self
     }
@@ -110,7 +111,7 @@ impl ProjectBuilder {
         self.due_date.clone()
     }
 
-    pub fn children(&self) -> Vec<ProjectSubElement> {
+    pub fn children(&self) -> Vec<SchedulableItem> {
         self.children.clone()
     }
 
@@ -118,12 +119,18 @@ impl ProjectBuilder {
         self.dependencies.clone()
     }
 
-    pub fn status(&self) -> ProjectStatus {
+    pub fn status(&self) -> SchedulableItemStatus {
         self.status.clone()
     }
 
     pub fn build(self) -> Project {
         Project::from_builder(self)
+    }
+}
+
+impl Default for ProjectBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
